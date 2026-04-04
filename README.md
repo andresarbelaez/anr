@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# distro — Free Music Distribution
+
+Distribute your music to Spotify, Apple Music, and 150+ streaming platforms for free.
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router, TypeScript)
+- **Styling**: Tailwind CSS
+- **Auth / DB / Storage**: Supabase
+- **Distribution**: Pluggable adapter pattern (mock included, swap for Labelcamp/SonoSuite API)
+- **Payments**: Stripe (donation-based)
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
+
+```bash
+cd app
+npm install
+```
+
+### 2. Set up Supabase
+
+1. Create a project at [supabase.com](https://supabase.com)
+2. Run the SQL schema in `src/lib/supabase/schema.sql` via the Supabase SQL Editor
+3. Create two storage buckets: `tracks` (private) and `artwork` (public)
+
+### 3. Configure environment
+
+```bash
+cp .env.local.example .env.local
+```
+
+Fill in your Supabase URL and anon key from the Supabase dashboard.
+
+### 4. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+  app/
+    (auth)/          — Login and signup pages
+    (dashboard)/     — Protected dashboard (releases, royalties, settings)
+    [artist]/        — Public artist profile pages
+    api/             — API routes (distribution, Stripe webhooks)
+    donate/          — Donation page
+  components/
+    upload/          — Track uploader, cover art, metadata form, review
+    dashboard/       — Release cards, status badges, royalty charts
+    profile/         — Artist header, discography grid
+    ui/              — Shared UI primitives (button, input, select)
+  lib/
+    supabase/        — Client, server, middleware, types, schema
+    distribution/    — Adapter interface, mock adapter
+    utils/           — Audio validation, metadata validation, cn()
+```
 
-## Learn More
+## Distribution Adapter
 
-To learn more about Next.js, take a look at the following resources:
+The app uses a pluggable adapter pattern for distribution. During development, a mock adapter simulates the full release lifecycle. To connect a real distribution backend:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Implement the `DistributionAdapter` interface in `src/lib/distribution/adapter.ts`
+2. Swap the adapter in `src/lib/distribution/index.ts`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment Checklist
 
-## Deploy on Vercel
+When deploying to production with a real domain, update these:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [ ] **`.env.local`** — Set `NEXT_PUBLIC_APP_URL` to your production URL
+- [ ] **Supabase > Authentication > URL Configuration > Site URL** — Change from `http://localhost:3000` to your production URL (e.g. `https://yourdomain.com`)
+- [ ] **Supabase > Authentication > URL Configuration > Redirect URLs** — Add `https://yourdomain.com/auth/callback` (keep localhost for dev)
+- [ ] **Supabase > Authentication > Email Templates** — Update any links that reference localhost
+- [ ] **Supabase Storage** — If upgrading to Pro, update `MAX_WAV_SIZE` in `src/lib/utils/audio-validation.ts`
+- [ ] **Stripe** — Add `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` to env, configure webhook endpoint to `https://yourdomain.com/api/webhooks/stripe`
+- [ ] **SMTP** — Configure a custom SMTP provider in Supabase (Resend, Postmark, or SendGrid) for reliable email delivery
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+MIT
