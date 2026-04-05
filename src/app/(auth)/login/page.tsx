@@ -2,8 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { AuthTabs } from "@/components/ui/auth-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -40,11 +40,14 @@ function LoginPageContent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-black px-4">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-          <p className="mt-2 text-sm text-neutral-400">
-            Sign in to manage your releases
-          </p>
+        <div className="space-y-6">
+          <AuthTabs />
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white">Welcome back</h1>
+            <p className="mt-2 text-sm text-neutral-400">
+              Sign in to manage your releases
+            </p>
+          </div>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -87,15 +90,6 @@ function LoginPageContent() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-neutral-400">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/signup"
-            className="font-medium text-white underline underline-offset-2 hover:text-neutral-200"
-          >
-            Sign up free
-          </Link>
-        </p>
       </div>
     </div>
   );

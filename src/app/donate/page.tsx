@@ -12,6 +12,7 @@ export default function DonatePage() {
   const [amount, setAmount] = useState<number | string>(10);
   const [customAmount, setCustomAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedAmount =
     typeof amount === "number" ? amount : parseFloat(customAmount) || 0;
@@ -19,14 +20,30 @@ export default function DonatePage() {
   const handleDonate = async () => {
     if (selectedAmount < 1) return;
     setLoading(true);
+    setError(null);
 
-    // In production, this would create a Stripe Checkout session
-    // and redirect to Stripe's hosted payment page.
-    // For now, we show a placeholder.
-    alert(
-      `Thank you! In production, this would redirect to Stripe Checkout for $${selectedAmount.toFixed(2)}.`
-    );
-    setLoading(false);
+    try {
+      const res = await fetch("/api/donate/checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountUsd: selectedAmount }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+
+      if (!res.ok) {
+        setError(data.error ?? "Could not start checkout.");
+        return;
+      }
+      if (!data.url) {
+        setError("Could not start checkout.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError("Network error. Try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -92,6 +109,12 @@ export default function DonatePage() {
               placeholder="Enter amount"
             />
           </div>
+
+          {error ? (
+            <p className="rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2 text-center text-sm text-red-200">
+              {error}
+            </p>
+          ) : null}
 
           <Button
             onClick={handleDonate}

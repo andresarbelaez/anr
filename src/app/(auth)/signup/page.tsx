@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { AuthTabs } from "@/components/ui/auth-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -76,13 +77,16 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-black px-4">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">
-            Start distributing for free
-          </h1>
-          <p className="mt-2 text-sm text-neutral-400">
-            Get your music on every major platform
-          </p>
+        <div className="space-y-6">
+          <AuthTabs />
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white">
+              Start distributing for free
+            </h1>
+            <p className="mt-2 text-sm text-neutral-400">
+              Get your music on every major platform
+            </p>
+          </div>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
@@ -144,15 +148,6 @@ export default function SignupPage() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-neutral-400">
-          Already have an account?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-white underline underline-offset-2 hover:text-neutral-200"
-          >
-            Sign in
-          </Link>
-        </p>
       </div>
     </div>
   );

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Project context for LLM agents
 context.md
+
+# Private drafts
+message-drafts.md
