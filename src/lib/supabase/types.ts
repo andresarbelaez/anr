@@ -88,5 +88,45 @@ export interface Donation {
   created_at: string;
 }
 
+export interface CatalogSong {
+  id: string;
+  user_id: string;
+  title: string;
+  release_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CatalogSongVersion {
+  id: string;
+  catalog_song_id: string;
+  label: string | null;
+  storage_path: string;
+  file_name: string;
+  created_at: string;
+}
+
+export interface CrmContact {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string | null;
+  instagram: string | null;
+  tiktok: string | null;
+  role: string | null;
+  notes: string | null;
+  last_contacted_at: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmContactCollaboration {
+  id: string;
+  contact_id: string;
+  release_id: string | null;
+  catalog_song_id: string | null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Database {}

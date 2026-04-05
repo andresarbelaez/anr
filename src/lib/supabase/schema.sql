@@ -240,3 +240,230 @@ create trigger set_updated_at before update on public.releases
 -- Storage buckets (run in Supabase dashboard or via API)
 -- insert into storage.buckets (id, name, public) values ('tracks', 'tracks', false);
 -- insert into storage.buckets (id, name, public) values ('artwork', 'artwork', true);
+-- Catalog MP3 bucket (private): see block at end of this file for `catalog_mp3` + policies.
+
+-- ========== Catalog (per-artist songs, separate from distribution releases) ==========
+
+create table public.catalog_songs (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  title text not null,
+  release_id uuid references public.releases(id) on delete set null,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
+);
+
+alter table public.catalog_songs enable row level security;
+
+create policy "Users can view their catalog songs"
+  on public.catalog_songs for select using (auth.uid() = user_id);
+
+create policy "Users can insert catalog songs"
+  on public.catalog_songs for insert with check (
+    auth.uid() = user_id
+    and (
+      release_id is null
+      or exists (
+        select 1 from public.releases r
+        where r.id = release_id and r.user_id = auth.uid()
+      )
+    )
+  );
+
+create policy "Users can update catalog songs"
+  on public.catalog_songs for update using (auth.uid() = user_id) with check (
+    auth.uid() = user_id
+    and (
+      release_id is null
+      or exists (
+        select 1 from public.releases r
+        where r.id = release_id and r.user_id = auth.uid()
+      )
+    )
+  );
+
+create policy "Users can delete catalog songs"
+  on public.catalog_songs for delete using (auth.uid() = user_id);
+
+create table public.catalog_song_versions (
+  id uuid default gen_random_uuid() primary key,
+  catalog_song_id uuid references public.catalog_songs(id) on delete cascade not null,
+  label text,
+  storage_path text not null,
+  file_name text not null,
+  created_at timestamptz default now() not null
+);
+
+alter table public.catalog_song_versions enable row level security;
+
+create policy "Users can view versions of their catalog songs"
+  on public.catalog_song_versions for select using (
+    exists (
+      select 1 from public.catalog_songs s
+      where s.id = catalog_song_versions.catalog_song_id and s.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can insert catalog versions"
+  on public.catalog_song_versions for insert with check (
+    exists (
+      select 1 from public.catalog_songs s
+      where s.id = catalog_song_versions.catalog_song_id and s.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can update catalog versions"
+  on public.catalog_song_versions for update using (
+    exists (
+      select 1 from public.catalog_songs s
+      where s.id = catalog_song_versions.catalog_song_id and s.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can delete catalog versions"
+  on public.catalog_song_versions for delete using (
+    exists (
+      select 1 from public.catalog_songs s
+      where s.id = catalog_song_versions.catalog_song_id and s.user_id = auth.uid()
+    )
+  );
+
+-- ========== CRM contacts (per artist) ==========
+
+create table public.crm_contacts (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  email text,
+  instagram text,
+  tiktok text,
+  role text,
+  notes text,
+  last_contacted_at date,
+  status text not null default 'active',
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
+);
+
+alter table public.crm_contacts enable row level security;
+
+create policy "Users can view their CRM contacts"
+  on public.crm_contacts for select using (auth.uid() = user_id);
+
+create policy "Users can insert CRM contacts"
+  on public.crm_contacts for insert with check (auth.uid() = user_id);
+
+create policy "Users can update CRM contacts"
+  on public.crm_contacts for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "Users can delete CRM contacts"
+  on public.crm_contacts for delete using (auth.uid() = user_id);
+
+create table public.crm_contact_collaborations (
+  id uuid default gen_random_uuid() primary key,
+  contact_id uuid references public.crm_contacts(id) on delete cascade not null,
+  release_id uuid references public.releases(id) on delete cascade,
+  catalog_song_id uuid references public.catalog_songs(id) on delete cascade,
+  constraint crm_collab_one_target check (
+    (release_id is not null and catalog_song_id is null)
+    or (release_id is null and catalog_song_id is not null)
+  )
+);
+
+alter table public.crm_contact_collaborations enable row level security;
+
+create unique index crm_collab_contact_release_unique
+  on public.crm_contact_collaborations (contact_id, release_id)
+  where release_id is not null;
+
+create unique index crm_collab_contact_catalog_unique
+  on public.crm_contact_collaborations (contact_id, catalog_song_id)
+  where catalog_song_id is not null;
+
+create policy "Users can view collaborations for their contacts"
+  on public.crm_contact_collaborations for select using (
+    exists (
+      select 1 from public.crm_contacts c
+      where c.id = crm_contact_collaborations.contact_id and c.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can insert collaborations"
+  on public.crm_contact_collaborations for insert with check (
+    exists (
+      select 1 from public.crm_contacts c
+      where c.id = contact_id and c.user_id = auth.uid()
+    )
+    and (
+      (
+        release_id is not null
+        and catalog_song_id is null
+        and exists (
+          select 1 from public.releases r
+          where r.id = release_id and r.user_id = auth.uid()
+        )
+      )
+      or (
+        catalog_song_id is not null
+        and release_id is null
+        and exists (
+          select 1 from public.catalog_songs s
+          where s.id = catalog_song_id and s.user_id = auth.uid()
+        )
+      )
+    )
+  );
+
+create policy "Users can delete collaborations"
+  on public.crm_contact_collaborations for delete using (
+    exists (
+      select 1 from public.crm_contacts c
+      where c.id = crm_contact_collaborations.contact_id and c.user_id = auth.uid()
+    )
+  );
+
+create index idx_catalog_songs_user_id on public.catalog_songs(user_id);
+create index idx_catalog_songs_release_id on public.catalog_songs(release_id);
+create index idx_catalog_song_versions_song_id on public.catalog_song_versions(catalog_song_id);
+create index idx_crm_contacts_user_id on public.crm_contacts(user_id);
+create index idx_crm_collab_contact_id on public.crm_contact_collaborations(contact_id);
+
+create trigger set_updated_at before update on public.catalog_songs
+  for each row execute function public.update_updated_at();
+
+create trigger set_updated_at before update on public.crm_contacts
+  for each row execute function public.update_updated_at();
+
+-- Storage: catalog MP3 files (object path: {user_id}/{catalog_song_id}/{filename})
+-- Run the following block once in the Supabase SQL editor after the tables above exist.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('catalog_mp3', 'catalog_mp3', false, 52428800, array['audio/mpeg', 'audio/mp3'])
+on conflict (id) do update set
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "catalog_mp3 select own" on storage.objects;
+drop policy if exists "catalog_mp3 insert own" on storage.objects;
+drop policy if exists "catalog_mp3 update own" on storage.objects;
+drop policy if exists "catalog_mp3 delete own" on storage.objects;
+
+create policy "catalog_mp3 select own"
+  on storage.objects for select using (
+    bucket_id = 'catalog_mp3' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "catalog_mp3 insert own"
+  on storage.objects for insert with check (
+    bucket_id = 'catalog_mp3' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "catalog_mp3 update own"
+  on storage.objects for update using (
+    bucket_id = 'catalog_mp3' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "catalog_mp3 delete own"
+  on storage.objects for delete using (
+    bucket_id = 'catalog_mp3' and (storage.foldername(name))[1] = auth.uid()::text
+  );

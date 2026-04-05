@@ -2,12 +2,22 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Disc3, BarChart3, Settings, LogOut, Heart } from "lucide-react";
+import {
+  Disc3,
+  BarChart3,
+  Settings,
+  LogOut,
+  Heart,
+  Users,
+  ListMusic,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
 
 const navItems = [
   { href: "/releases", label: "Releases", icon: Disc3 },
+  { href: "/catalog", label: "Catalog", icon: ListMusic },
+  { href: "/crm", label: "CRM", icon: Users },
   { href: "/royalties", label: "Royalties", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
