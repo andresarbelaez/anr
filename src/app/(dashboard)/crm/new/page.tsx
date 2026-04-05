@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { CRM_STATUS_OPTIONS } from "@/lib/crm-status";
+import type { CatalogSong, Release } from "@/lib/supabase/types";
+import {
+  CrmAddCollaborationControls,
+  type CrmCollabTarget,
+} from "@/components/crm/CrmAddCollaborationControls";
+
+type PendingCollab = {
+  tempId: string;
+  kind: "release" | "catalog";
+  targetId: string;
+  displayTitle: string;
+  note: string | null;
+};
 
 export default function CrmNewPage() {
   const router = useRouter();
@@ -23,6 +36,48 @@ export default function CrmNewPage() {
   const [notes, setNotes] = useState("");
   const [lastContacted, setLastContacted] = useState("");
   const [status, setStatus] = useState("active");
+
+  const [releases, setReleases] = useState<Release[]>([]);
+  const [catalogSongs, setCatalogSongs] = useState<CatalogSong[]>([]);
+  const [picklistsLoading, setPicklistsLoading] = useState(true);
+
+  const [collabSelection, setCollabSelection] = useState<CrmCollabTarget | null>(
+    null
+  );
+  const [linkNote, setLinkNote] = useState("");
+  const [pendingCollabs, setPendingCollabs] = useState<PendingCollab[]>([]);
+
+  const loadPicklists = useCallback(async () => {
+    setPicklistsLoading(true);
+    const supabase = createClient();
+    const [{ data: rels }, { data: songs }] = await Promise.all([
+      supabase.from("releases").select("*").order("created_at", { ascending: false }),
+      supabase.from("catalog_songs").select("*").order("title"),
+    ]);
+    setReleases((rels as Release[]) || []);
+    setCatalogSongs((songs as CatalogSong[]) || []);
+    setPicklistsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void loadPicklists();
+  }, [loadPicklists]);
+
+  const handleAddPendingCollab = () => {
+    if (!collabSelection) return;
+    setPendingCollabs((prev) => [
+      ...prev,
+      {
+        tempId: crypto.randomUUID(),
+        kind: collabSelection.kind,
+        targetId: collabSelection.id,
+        displayTitle: collabSelection.label,
+        note: linkNote.trim() || null,
+      },
+    ]);
+    setCollabSelection(null);
+    setLinkNote("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +119,37 @@ export default function CrmNewPage() {
       return;
     }
 
-    router.push(`/crm/${data.id}`);
+    const contactId = data.id as string;
+    const failed: string[] = [];
+
+    for (const p of pendingCollabs) {
+      const row =
+        p.kind === "release"
+          ? {
+              contact_id: contactId,
+              release_id: p.targetId,
+              note: p.note,
+            }
+          : {
+              contact_id: contactId,
+              catalog_song_id: p.targetId,
+              note: p.note,
+            };
+      const { error: cErr } = await supabase
+        .from("crm_contact_collaborations")
+        .insert(row);
+      if (cErr) {
+        failed.push(`${p.displayTitle}: ${cErr.message}`);
+      }
+    }
+
+    if (failed.length) {
+      window.alert(
+        `Contact created. Some collaboration links could not be saved:\n\n${failed.join("\n")}\n\nYou can add or fix them on the contact page.`
+      );
+    }
+
+    router.push(`/crm/${contactId}`);
     router.refresh();
   };
 
@@ -80,7 +165,7 @@ export default function CrmNewPage() {
 
       <h1 className="text-2xl font-bold text-white">New contact</h1>
       <p className="mt-1 text-sm text-neutral-400">
-        Save the contact, then add collaborations from the edit screen.
+        Add collaborations now or later — links go to releases or library songs.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 max-w-xl space-y-4">
@@ -140,6 +225,61 @@ export default function CrmNewPage() {
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Free-form notes…"
         />
+
+        <section className="border-t border-neutral-800 pt-6">
+          <h2 className="text-sm font-medium text-white">Collaborations</h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Optional — search releases and library songs in one list. Add
+            multiple links (same title is fine with different context).
+          </p>
+
+          {pendingCollabs.length > 0 && (
+            <ul className="mt-4 space-y-2">
+              {pendingCollabs.map((p) => (
+                <li
+                  key={p.tempId}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="text-neutral-500">
+                      {p.kind === "release" ? "Release" : "Library"}:{" "}
+                    </span>
+                    {p.displayTitle}
+                    {p.note ? (
+                      <span className="text-neutral-500"> — {p.note}</span>
+                    ) : null}
+                  </span>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded p-1 text-neutral-500 hover:bg-neutral-800 hover:text-white"
+                    aria-label="Remove collaboration"
+                    onClick={() =>
+                      setPendingCollabs((prev) =>
+                        prev.filter((x) => x.tempId !== p.tempId)
+                      )
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4 max-w-2xl">
+            <CrmAddCollaborationControls
+              releases={releases}
+              catalogSongs={catalogSongs}
+              selection={collabSelection}
+              onSelectionChange={setCollabSelection}
+              linkNote={linkNote}
+              onLinkNoteChange={setLinkNote}
+              onAdd={handleAddPendingCollab}
+              adding={false}
+              picklistsLoading={picklistsLoading}
+            />
+          </div>
+        </section>
+
         <div className="flex gap-3 pt-2">
           <Button type="submit" loading={saving}>
             Create contact

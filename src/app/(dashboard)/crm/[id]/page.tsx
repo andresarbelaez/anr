@@ -16,6 +16,11 @@ import type {
   CatalogSong,
 } from "@/lib/supabase/types";
 import { CRM_STATUS_OPTIONS } from "@/lib/crm-status";
+import {
+  CrmAddCollaborationControls,
+  type CrmCollabTarget,
+} from "@/components/crm/CrmAddCollaborationControls";
+import { CrmCollabPill } from "@/components/crm/CrmCollabPill";
 
 type CollabRow = CrmContactCollaboration & {
   releaseTitle?: string;
@@ -37,8 +42,10 @@ export default function CrmEditPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [catalogSongs, setCatalogSongs] = useState<CatalogSong[]>([]);
 
-  const [linkKind, setLinkKind] = useState<"release" | "catalog">("release");
-  const [linkTargetId, setLinkTargetId] = useState("");
+  const [collabSelection, setCollabSelection] = useState<CrmCollabTarget | null>(
+    null
+  );
+  const [linkNote, setLinkNote] = useState("");
   const [linkSaving, setLinkSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -59,7 +66,11 @@ export default function CrmEditPage() {
 
     const [{ data: collabRows }, { data: rels }, { data: songs }] =
       await Promise.all([
-        supabase.from("crm_contact_collaborations").select("*").eq("contact_id", id),
+        supabase
+          .from("crm_contact_collaborations")
+          .select("*")
+          .eq("contact_id", id)
+          .order("created_at", { ascending: true }),
         supabase.from("releases").select("*").order("created_at", { ascending: false }),
         supabase.from("catalog_songs").select("*").order("title"),
       ]);
@@ -74,9 +85,16 @@ export default function CrmEditPage() {
     const enriched: CollabRow[] =
       (collabRows as CrmContactCollaboration[])?.map((c) => ({
         ...c,
+        note: c.note ?? null,
+        created_at: c.created_at ?? new Date().toISOString(),
         releaseTitle: c.release_id ? releaseMap[c.release_id] : undefined,
         catalogTitle: c.catalog_song_id ? songMap[c.catalog_song_id] : undefined,
       })) || [];
+
+    enriched.sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
 
     setCollabs(enriched);
     setReleases((rels as Release[]) || []);
@@ -131,14 +149,15 @@ export default function CrmEditPage() {
   };
 
   const handleAddLink = async () => {
-    if (!linkTargetId) return;
+    if (!collabSelection) return;
     setLinkSaving(true);
     setError(null);
     const supabase = createClient();
+    const note = linkNote.trim() || null;
     const row =
-      linkKind === "release"
-        ? { contact_id: id, release_id: linkTargetId }
-        : { contact_id: id, catalog_song_id: linkTargetId };
+      collabSelection.kind === "release"
+        ? { contact_id: id, release_id: collabSelection.id, note }
+        : { contact_id: id, catalog_song_id: collabSelection.id, note };
 
     const { error: iErr } = await supabase
       .from("crm_contact_collaborations")
@@ -149,7 +168,8 @@ export default function CrmEditPage() {
       setLinkSaving(false);
       return;
     }
-    setLinkTargetId("");
+    setCollabSelection(null);
+    setLinkNote("");
     await load();
     setLinkSaving(false);
   };
@@ -158,6 +178,24 @@ export default function CrmEditPage() {
     const supabase = createClient();
     await supabase.from("crm_contact_collaborations").delete().eq("id", collabId);
     await load();
+  };
+
+  const saveCollabNote = async (
+    collabId: string,
+    value: string,
+    previous: string | null | undefined
+  ) => {
+    const next = value.trim() || null;
+    const prev = previous?.trim() || null;
+    if (next === prev) return;
+    setError(null);
+    const supabase = createClient();
+    const { error: uErr } = await supabase
+      .from("crm_contact_collaborations")
+      .update({ note: next })
+      .eq("id", collabId);
+    if (uErr) setError(uErr.message);
+    else await load();
   };
 
   if (loading) {
@@ -178,29 +216,6 @@ export default function CrmEditPage() {
       </div>
     );
   }
-
-  const releaseOptions = releases.map((r) => ({
-    value: r.id,
-    label: `${r.title} (${r.status})`,
-  }));
-  const catalogOptions = catalogSongs.map((s) => ({
-    value: s.id,
-    label: s.title,
-  }));
-
-  const linkedReleaseIds = new Set(
-    collabs.filter((c) => c.release_id).map((c) => c.release_id as string)
-  );
-  const linkedSongIds = new Set(
-    collabs.filter((c) => c.catalog_song_id).map((c) => c.catalog_song_id as string)
-  );
-
-  const filteredReleaseOptions = releaseOptions.filter(
-    (o) => !linkedReleaseIds.has(o.value)
-  );
-  const filteredCatalogOptions = catalogOptions.filter(
-    (o) => !linkedSongIds.has(o.value)
-  );
 
   return (
     <div>
@@ -304,8 +319,9 @@ export default function CrmEditPage() {
       <section className="mt-12 max-w-2xl border-t border-neutral-800 pt-10">
         <h2 className="text-lg font-semibold text-white">Collaborations</h2>
         <p className="mt-1 text-sm text-neutral-400">
-          Link this contact to a release or a catalog song you worked on
-          together.
+          Search your releases and library in one picker. Add as many links as
+          you need — including duplicates with different context (session,
+          role, date).
         </p>
 
         {collabs.length === 0 ? (
@@ -315,90 +331,78 @@ export default function CrmEditPage() {
             {collabs.map((c) => (
               <li
                 key={c.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-3"
+                className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
               >
-                <div className="text-sm text-neutral-200">
+                <div className="min-w-0 flex-1 text-sm text-neutral-200">
                   {c.release_id && (
-                    <span>
-                      Release:{" "}
-                      <Link
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-neutral-500">Release</span>
+                      <CrmCollabPill
+                        kind="release"
                         href={`/releases/${c.release_id}`}
-                        className="text-white underline-offset-2 hover:underline"
+                        title={
+                          c.note
+                            ? `${c.releaseTitle ?? c.release_id} — ${c.note}`
+                            : (c.releaseTitle ?? undefined)
+                        }
                       >
                         {c.releaseTitle ?? c.release_id}
-                      </Link>
-                    </span>
+                      </CrmCollabPill>
+                    </div>
                   )}
                   {c.catalog_song_id && (
-                    <span>
-                      Catalog:{" "}
-                      <Link
+                    <div className="mt-1 flex flex-wrap items-center gap-2 sm:mt-0">
+                      <span className="text-neutral-500">Library</span>
+                      <CrmCollabPill
+                        kind="catalog"
                         href={`/catalog/${c.catalog_song_id}`}
-                        className="text-white underline-offset-2 hover:underline"
+                        title={
+                          c.note
+                            ? `${c.catalogTitle ?? c.catalog_song_id} — ${c.note}`
+                            : (c.catalogTitle ?? undefined)
+                        }
                       >
                         {c.catalogTitle ?? c.catalog_song_id}
-                      </Link>
-                    </span>
+                      </CrmCollabPill>
+                    </div>
                   )}
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-400 hover:text-red-300"
-                  onClick={() => handleRemoveLink(c.id)}
-                >
-                  Remove
-                </Button>
+                <div className="flex w-full flex-col gap-2 sm:w-72">
+                  <Input
+                    placeholder="Context (session, role, date…)"
+                    className="h-9 text-xs"
+                    defaultValue={c.note ?? ""}
+                    key={`${c.id}-${c.note ?? ""}`}
+                    onBlur={(e) =>
+                      void saveCollabNote(c.id, e.target.value, c.note)
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="self-end text-red-400 hover:text-red-300"
+                    onClick={() => handleRemoveLink(c.id)}
+                  >
+                    Remove
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
         )}
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Select
-            label="Link type"
-            value={linkKind}
-            onChange={(e) =>
-              setLinkKind(e.target.value as "release" | "catalog")
-            }
-            options={[
-              { value: "release", label: "Release" },
-              { value: "catalog", label: "Catalog song" },
-            ]}
+        <div className="mt-6 max-w-2xl">
+          <CrmAddCollaborationControls
+            releases={releases}
+            catalogSongs={catalogSongs}
+            selection={collabSelection}
+            onSelectionChange={setCollabSelection}
+            linkNote={linkNote}
+            onLinkNoteChange={setLinkNote}
+            onAdd={handleAddLink}
+            adding={linkSaving}
           />
-          <div className="min-w-[220px] flex-1">
-            {linkKind === "release" ? (
-              <Select
-                label="Release"
-                value={linkTargetId}
-                onChange={(e) => setLinkTargetId(e.target.value)}
-                placeholder="Choose release"
-                options={filteredReleaseOptions}
-              />
-            ) : (
-              <Select
-                label="Catalog song"
-                value={linkTargetId}
-                onChange={(e) => setLinkTargetId(e.target.value)}
-                placeholder="Choose song"
-                options={filteredCatalogOptions}
-              />
-            )}
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={
-              !linkTargetId ||
-              (linkKind === "release" && filteredReleaseOptions.length === 0) ||
-              (linkKind === "catalog" && filteredCatalogOptions.length === 0)
-            }
-            loading={linkSaving}
-            onClick={handleAddLink}
-          >
-            Add link
-          </Button>
         </div>
       </section>
     </div>

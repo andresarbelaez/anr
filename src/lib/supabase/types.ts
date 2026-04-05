@@ -106,6 +106,26 @@ export interface CatalogSongVersion {
   created_at: string;
 }
 
+export interface FeedbackVersionLink {
+  id: string;
+  catalog_song_version_id: string;
+  token: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeedbackComment {
+  id: string;
+  feedback_link_id: string;
+  parent_id: string | null;
+  body: string;
+  seconds_into_track: number | null;
+  display_name: string | null;
+  giver_secret: string;
+  created_at: string;
+}
+
 export interface CrmContact {
   id: string;
   user_id: string;
@@ -126,6 +146,8 @@ export interface CrmContactCollaboration {
   contact_id: string;
   release_id: string | null;
   catalog_song_id: string | null;
+  note: string | null;
+  created_at: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Download, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Download, Play, Trash2, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   safeStorageFileName,
   validateCatalogMp3File,
 } from "@/lib/utils/catalog-mp3";
+import { useCatalogPlayer } from "@/contexts/catalog-player-context";
 
 export default function CatalogEditPage() {
   const params = useParams();
@@ -31,6 +32,8 @@ export default function CatalogEditPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadLabel, setUploadLabel] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  const { playCatalogVersion } = useCatalogPlayer();
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -223,7 +226,7 @@ export default function CatalogEditPage() {
       <div>
         <p className="text-neutral-400">Song not found.</p>
         <Link href="/catalog" className="mt-4 inline-block text-white underline">
-          Back to catalog
+          Back to library
         </Link>
       </div>
     );
@@ -236,11 +239,11 @@ export default function CatalogEditPage() {
         className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to catalog
+        Back to library
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">Edit catalog song</h1>
+        <h1 className="text-2xl font-bold text-white">Edit song</h1>
         <Button
           type="button"
           variant="danger"
@@ -309,7 +312,22 @@ export default function CatalogEditPage() {
                     <span className="ml-2 text-neutral-500">{v.file_name}</span>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      void playCatalogVersion(
+                        v.storage_path,
+                        song.title,
+                        v.label || v.file_name
+                      )
+                    }
+                  >
+                    <Play className="mr-1 h-3.5 w-3.5" />
+                    Play
+                  </Button>
                   <Button
                     type="button"
                     variant="secondary"

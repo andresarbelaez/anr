@@ -75,10 +75,10 @@ export default function CatalogNewPage() {
         className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to catalog
+        Back to library
       </Link>
 
-      <h1 className="text-2xl font-bold text-white">New catalog song</h1>
+      <h1 className="text-2xl font-bold text-white">New song</h1>
       <p className="mt-1 text-sm text-neutral-400">
         Add MP3 versions on the next screen after you create the song.
       </p>

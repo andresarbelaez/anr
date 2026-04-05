@@ -364,6 +364,8 @@ create table public.crm_contact_collaborations (
   contact_id uuid references public.crm_contacts(id) on delete cascade not null,
   release_id uuid references public.releases(id) on delete cascade,
   catalog_song_id uuid references public.catalog_songs(id) on delete cascade,
+  note text,
+  created_at timestamptz default now() not null,
   constraint crm_collab_one_target check (
     (release_id is not null and catalog_song_id is null)
     or (release_id is null and catalog_song_id is not null)
@@ -371,14 +373,6 @@ create table public.crm_contact_collaborations (
 );
 
 alter table public.crm_contact_collaborations enable row level security;
-
-create unique index crm_collab_contact_release_unique
-  on public.crm_contact_collaborations (contact_id, release_id)
-  where release_id is not null;
-
-create unique index crm_collab_contact_catalog_unique
-  on public.crm_contact_collaborations (contact_id, catalog_song_id)
-  where catalog_song_id is not null;
 
 create policy "Users can view collaborations for their contacts"
   on public.crm_contact_collaborations for select using (
@@ -393,6 +387,37 @@ create policy "Users can insert collaborations"
     exists (
       select 1 from public.crm_contacts c
       where c.id = contact_id and c.user_id = auth.uid()
+    )
+    and (
+      (
+        release_id is not null
+        and catalog_song_id is null
+        and exists (
+          select 1 from public.releases r
+          where r.id = release_id and r.user_id = auth.uid()
+        )
+      )
+      or (
+        catalog_song_id is not null
+        and release_id is null
+        and exists (
+          select 1 from public.catalog_songs s
+          where s.id = catalog_song_id and s.user_id = auth.uid()
+        )
+      )
+    )
+  );
+
+create policy "Users can update collaborations"
+  on public.crm_contact_collaborations for update using (
+    exists (
+      select 1 from public.crm_contacts c
+      where c.id = crm_contact_collaborations.contact_id and c.user_id = auth.uid()
+    )
+  ) with check (
+    exists (
+      select 1 from public.crm_contacts c
+      where c.id = crm_contact_collaborations.contact_id and c.user_id = auth.uid()
     )
     and (
       (
@@ -467,3 +492,177 @@ create policy "catalog_mp3 delete own"
   on storage.objects for delete using (
     bucket_id = 'catalog_mp3' and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ---- Upgrade: CRM collaborations one-to-many + note (safe to re-run) ----
+-- Removes unique constraints so the same contact can link to the same release or catalog song multiple times (e.g. multiple sessions / credits).
+
+alter table public.crm_contact_collaborations add column if not exists note text;
+alter table public.crm_contact_collaborations
+  add column if not exists created_at timestamptz not null default now();
+
+drop index if exists crm_collab_contact_release_unique;
+drop index if exists crm_collab_contact_catalog_unique;
+
+drop policy if exists "Users can update collaborations" on public.crm_contact_collaborations;
+
+create policy "Users can update collaborations"
+  on public.crm_contact_collaborations for update using (
+    exists (
+      select 1 from public.crm_contacts c
+      where c.id = crm_contact_collaborations.contact_id and c.user_id = auth.uid()
+    )
+  ) with check (
+    exists (
+      select 1 from public.crm_contacts c
+      where c.id = crm_contact_collaborations.contact_id and c.user_id = auth.uid()
+    )
+    and (
+      (
+        release_id is not null
+        and catalog_song_id is null
+        and exists (
+          select 1 from public.releases r
+          where r.id = release_id and r.user_id = auth.uid()
+        )
+      )
+      or (
+        catalog_song_id is not null
+        and release_id is null
+        and exists (
+          select 1 from public.catalog_songs s
+          where s.id = catalog_song_id and s.user_id = auth.uid()
+        )
+      )
+    )
+  );
+
+-- ========== Feedback (time-annotated comments on library MP3 versions) ==========
+-- One share row per catalog_song_version (simplest model). Public access uses token in URL;
+-- guest writes go through Next.js API routes (service role). Owners use dashboard + RLS.
+
+create table public.feedback_version_links (
+  id uuid default gen_random_uuid() primary key,
+  catalog_song_version_id uuid not null unique references public.catalog_song_versions(id) on delete cascade,
+  token uuid not null unique default gen_random_uuid(),
+  enabled boolean not null default true,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
+);
+
+alter table public.feedback_version_links enable row level security;
+
+create policy "Owners select feedback links"
+  on public.feedback_version_links for select using (
+    exists (
+      select 1 from public.catalog_song_versions v
+      join public.catalog_songs s on s.id = v.catalog_song_id
+      where v.id = feedback_version_links.catalog_song_version_id
+        and s.user_id = auth.uid()
+    )
+  );
+
+create policy "Owners insert feedback links"
+  on public.feedback_version_links for insert with check (
+    exists (
+      select 1 from public.catalog_song_versions v
+      join public.catalog_songs s on s.id = v.catalog_song_id
+      where v.id = feedback_version_links.catalog_song_version_id
+        and s.user_id = auth.uid()
+    )
+  );
+
+create policy "Owners update feedback links"
+  on public.feedback_version_links for update using (
+    exists (
+      select 1 from public.catalog_song_versions v
+      join public.catalog_songs s on s.id = v.catalog_song_id
+      where v.id = feedback_version_links.catalog_song_version_id
+        and s.user_id = auth.uid()
+    )
+  ) with check (
+    exists (
+      select 1 from public.catalog_song_versions v
+      join public.catalog_songs s on s.id = v.catalog_song_id
+      where v.id = feedback_version_links.catalog_song_version_id
+        and s.user_id = auth.uid()
+    )
+  );
+
+create policy "Owners delete feedback links"
+  on public.feedback_version_links for delete using (
+    exists (
+      select 1 from public.catalog_song_versions v
+      join public.catalog_songs s on s.id = v.catalog_song_id
+      where v.id = feedback_version_links.catalog_song_version_id
+        and s.user_id = auth.uid()
+    )
+  );
+
+create table public.feedback_comments (
+  id uuid default gen_random_uuid() primary key,
+  feedback_link_id uuid not null references public.feedback_version_links(id) on delete cascade,
+  parent_id uuid references public.feedback_comments(id) on delete cascade,
+  body text not null,
+  seconds_into_track double precision,
+  display_name text,
+  giver_secret uuid not null,
+  created_at timestamptz default now() not null,
+  constraint feedback_comments_body_len check (char_length(trim(body)) between 1 and 2000),
+  constraint feedback_comments_display_name_len check (
+    display_name is null or char_length(trim(display_name)) between 1 and 80
+  ),
+  constraint feedback_comments_seconds_rule check (
+    (parent_id is null and seconds_into_track is not null and seconds_into_track >= 0)
+    or (parent_id is not null and seconds_into_track is null)
+  )
+);
+
+alter table public.feedback_comments enable row level security;
+
+create policy "Owners select feedback comments"
+  on public.feedback_comments for select using (
+    exists (
+      select 1 from public.feedback_version_links fl
+      join public.catalog_song_versions v on v.id = fl.catalog_song_version_id
+      join public.catalog_songs s on s.id = v.catalog_song_id
+      where fl.id = feedback_comments.feedback_link_id
+        and s.user_id = auth.uid()
+    )
+  );
+
+create policy "Owners delete feedback comments"
+  on public.feedback_comments for delete using (
+    exists (
+      select 1 from public.feedback_version_links fl
+      join public.catalog_song_versions v on v.id = fl.catalog_song_version_id
+      join public.catalog_songs s on s.id = v.catalog_song_id
+      where fl.id = feedback_comments.feedback_link_id
+        and s.user_id = auth.uid()
+    )
+  );
+
+create or replace function public.feedback_comments_parent_must_be_root()
+returns trigger as $$
+begin
+  if new.parent_id is not null then
+    if exists (
+      select 1 from public.feedback_comments p
+      where p.id = new.parent_id and p.parent_id is not null
+    ) then
+      raise exception 'Feedback replies may only attach to a top-level comment';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists feedback_comments_parent_root on public.feedback_comments;
+create trigger feedback_comments_parent_root
+  before insert on public.feedback_comments
+  for each row execute function public.feedback_comments_parent_must_be_root();
+
+create index idx_feedback_comments_link_id on public.feedback_comments(feedback_link_id);
+create index idx_feedback_comments_parent_id on public.feedback_comments(parent_id);
+
+create trigger set_updated_at before update on public.feedback_version_links
+  for each row execute function public.update_updated_at();
