@@ -150,5 +150,31 @@ export interface CrmContactCollaboration {
   created_at: string;
 }
 
+export interface AgentThread {
+  id: string;
+  user_id: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentMessage {
+  id: string;
+  thread_id: string;
+  role: "user" | "assistant" | "tool";
+  content: string | null;
+  tool_calls: unknown | null;
+  tool_call_id: string | null;
+  attachments: AgentAttachmentRef[];
+  created_at: string;
+}
+
+export type AgentAttachmentRef = {
+  path: string;
+  mimeType: string;
+  kind: "image" | "audio" | "csv";
+  name?: string;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Database {}

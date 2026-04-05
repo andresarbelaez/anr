@@ -666,3 +666,130 @@ create index idx_feedback_comments_parent_id on public.feedback_comments(parent_
 
 create trigger set_updated_at before update on public.feedback_version_links
   for each row execute function public.update_updated_at();
+
+-- ---- Agent assistant: threads, messages, attachment storage ----
+
+create table public.agent_threads (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  title text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.agent_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.agent_threads (id) on delete cascade,
+  role text not null check (role in ('user', 'assistant', 'tool')),
+  content text,
+  tool_calls jsonb,
+  tool_call_id text,
+  attachments jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index idx_agent_threads_user_id on public.agent_threads (user_id);
+create index idx_agent_threads_updated_at on public.agent_threads (user_id, updated_at desc);
+create index idx_agent_messages_thread_id on public.agent_messages (thread_id, created_at);
+
+alter table public.agent_threads enable row level security;
+alter table public.agent_messages enable row level security;
+
+create policy "Users manage own agent threads"
+  on public.agent_threads for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Users read messages in own threads"
+  on public.agent_messages for select using (
+    exists (
+      select 1 from public.agent_threads t
+      where t.id = agent_messages.thread_id and t.user_id = auth.uid()
+    )
+  );
+
+create policy "Users insert messages in own threads"
+  on public.agent_messages for insert with check (
+    exists (
+      select 1 from public.agent_threads t
+      where t.id = agent_messages.thread_id and t.user_id = auth.uid()
+    )
+  );
+
+create policy "Users delete messages in own threads"
+  on public.agent_messages for delete using (
+    exists (
+      select 1 from public.agent_threads t
+      where t.id = agent_messages.thread_id and t.user_id = auth.uid()
+    )
+  );
+
+-- Assistant: mutations queued until the user approves in the UI
+create table public.agent_mutation_proposals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  thread_id uuid not null references public.agent_threads (id) on delete cascade,
+  tool_name text not null,
+  args jsonb not null default '{}'::jsonb,
+  summary text not null,
+  status text not null default 'pending' check (
+    status in ('pending', 'executed', 'rejected', 'failed')
+  ),
+  result_message text,
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+
+create index idx_agent_mutation_proposals_thread
+  on public.agent_mutation_proposals (thread_id, created_at desc);
+
+create index idx_agent_mutation_proposals_user_pending
+  on public.agent_mutation_proposals (user_id, status)
+  where status = 'pending';
+
+alter table public.agent_mutation_proposals enable row level security;
+
+create policy "Users manage own agent mutation proposals"
+  on public.agent_mutation_proposals for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create trigger set_updated_at before update on public.agent_threads
+  for each row execute function public.update_updated_at();
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'agent_attachments',
+  'agent_attachments',
+  false,
+  26214400,
+  array[
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+    'text/csv', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'
+  ]
+)
+on conflict (id) do nothing;
+
+drop policy if exists "agent_attachments select own" on storage.objects;
+drop policy if exists "agent_attachments insert own" on storage.objects;
+drop policy if exists "agent_attachments update own" on storage.objects;
+drop policy if exists "agent_attachments delete own" on storage.objects;
+
+create policy "agent_attachments select own"
+  on storage.objects for select using (
+    bucket_id = 'agent_attachments' and (storage.foldername (name))[1] = auth.uid()::text
+  );
+
+create policy "agent_attachments insert own"
+  on storage.objects for insert with check (
+    bucket_id = 'agent_attachments' and (storage.foldername (name))[1] = auth.uid()::text
+  );
+
+create policy "agent_attachments update own"
+  on storage.objects for update using (
+    bucket_id = 'agent_attachments' and (storage.foldername (name))[1] = auth.uid()::text
+  );
+
+create policy "agent_attachments delete own"
+  on storage.objects for delete using (
+    bucket_id = 'agent_attachments' and (storage.foldername (name))[1] = auth.uid()::text
+  );

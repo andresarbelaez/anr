@@ -11,6 +11,7 @@ import {
   Users,
   ListMusic,
   MessageSquare,
+  Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
@@ -21,6 +22,7 @@ import {
 import { CatalogPlayerBar } from "@/components/dashboard/CatalogPlayerBar";
 
 const navItems = [
+  { href: "/assistant", label: "Assistant", icon: Sparkles },
   { href: "/releases", label: "Releases", icon: Disc3 },
   { href: "/catalog", label: "Library", icon: ListMusic },
   { href: "/feedback", label: "Feedback", icon: MessageSquare },
