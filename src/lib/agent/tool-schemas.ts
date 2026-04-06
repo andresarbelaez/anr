@@ -75,6 +75,28 @@ export const AGENT_READ_TOOLS = [
   {
     type: "function" as const,
     function: {
+      name: "list_calendar_events",
+      description:
+        "List calendar events (including expanded recurring occurrences and release dates) for a date range. Use before creating or updating events to check for conflicts or find event ids.",
+      parameters: {
+        type: "object",
+        properties: {
+          start_date: {
+            type: "string",
+            description: "YYYY-MM-DD start of range (defaults to today)",
+          },
+          end_date: {
+            type: "string",
+            description: "YYYY-MM-DD end of range (defaults to 30 days from start)",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
       name: "list_feedback_comments",
       description:
         "Read guest feedback comments for one library MP3 version (threaded roots with replies, plus latestComment by time). Requires catalog_song_version_id: use list_catalog_songs → list_catalog_versions (match song title + version label) or list_feedback_links (includes version id).",
@@ -394,6 +416,106 @@ export const AGENT_MUTATION_TOOLS = [
           contact_id: { type: "string" },
         },
         required: ["contact_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  // Calendar mutations
+  {
+    type: "function" as const,
+    function: {
+      name: "create_calendar_event",
+      description:
+        "Queue creating a new calendar event. Supports single and recurring events. Requires user approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          start_at: { type: "string", description: "ISO datetime or YYYY-MM-DD for all-day events" },
+          end_at: { type: "string", description: "ISO datetime or YYYY-MM-DD (optional)" },
+          all_day: { type: "boolean" },
+          description: { type: "string" },
+          color: {
+            type: "string",
+            enum: ["default","red","orange","yellow","green","blue","purple","pink"],
+          },
+          location: { type: "string" },
+          link: { type: "string", description: "Meeting/video call URL" },
+          recurrence: {
+            type: "object",
+            description: "Omit for non-recurring events",
+            properties: {
+              frequency: { type: "string", enum: ["daily","weekly","monthly","yearly"] },
+              interval: { type: "number", description: "Repeat every N units. Default 1." },
+              days_of_week: {
+                type: "array",
+                items: { type: "number" },
+                description: "For weekly only: 0=Sun … 6=Sat",
+              },
+              end_date: { type: "string", description: "YYYY-MM-DD inclusive last date" },
+              count: { type: "number", description: "Max occurrences" },
+            },
+            required: ["frequency", "interval"],
+            additionalProperties: false,
+          },
+        },
+        required: ["title", "start_at"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "update_calendar_event",
+      description:
+        "Queue updating an existing calendar event. For recurring events, specify scope: 'this' (one occurrence), 'following' (this and future), or 'all' (entire series). occurrence_date is required when scope is 'this' or 'following'. Requires user approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          event_id: { type: "string", description: "Master event UUID from list_calendar_events" },
+          scope: { type: "string", enum: ["this","following","all"], description: "Required for recurring events; use 'all' for single events" },
+          occurrence_date: { type: "string", description: "YYYY-MM-DD of the specific occurrence (required when scope is 'this' or 'following')" },
+          title: { type: "string" },
+          start_at: { type: "string" },
+          end_at: { type: "string" },
+          all_day: { type: "boolean" },
+          description: { type: "string" },
+          color: { type: "string", enum: ["default","red","orange","yellow","green","blue","purple","pink"] },
+          location: { type: "string" },
+          link: { type: "string" },
+          recurrence: {
+            type: "object",
+            properties: {
+              frequency: { type: "string", enum: ["daily","weekly","monthly","yearly"] },
+              interval: { type: "number" },
+              days_of_week: { type: "array", items: { type: "number" } },
+              end_date: { type: "string" },
+              count: { type: "number" },
+            },
+            required: ["frequency", "interval"],
+            additionalProperties: false,
+          },
+        },
+        required: ["event_id", "scope"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "delete_calendar_event",
+      description:
+        "Queue deleting a calendar event. For recurring events, specify scope: 'this', 'following', or 'all'. occurrence_date required for 'this' and 'following'. Requires user approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          event_id: { type: "string" },
+          scope: { type: "string", enum: ["this","following","all"] },
+          occurrence_date: { type: "string", description: "YYYY-MM-DD (required for 'this' or 'following')" },
+        },
+        required: ["event_id", "scope"],
         additionalProperties: false,
       },
     },

@@ -470,14 +470,14 @@ export function ListenFeedbackClient({ token }: { token: string }) {
           label="Your name (optional)"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="e.g. Alex"
+          placeholder="e.g. Mom"
         />
         <Textarea
           id={`${idPrefix}-note`}
           label={`Note at ${formatAudioTime(current)}`}
           value={newBody}
           onChange={(e) => setNewBody(e.target.value)}
-          placeholder="What you think at this moment in the track…"
+          placeholder="What are you hearing that could be improved?"
           rows={3}
         />
         <Button
@@ -486,7 +486,7 @@ export function ListenFeedbackClient({ token }: { token: string }) {
           onClick={() => void postTopLevel()}
           disabled={!newBody.trim()}
         >
-          Post timestamped note
+          Add comment
         </Button>
       </section>
 

@@ -178,3 +178,66 @@ export type AgentAttachmentRef = {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Database {}
+
+// ---- Calendar ----
+
+export type CalendarColorKey =
+  | "default"
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "blue"
+  | "purple"
+  | "pink";
+
+export interface RecurrenceRule {
+  frequency: "daily" | "weekly" | "monthly" | "yearly";
+  /** Repeat every N units (e.g. 2 = every 2 weeks). Default 1. */
+  interval: number;
+  /** For weekly: days of week to fire on. 0=Sun … 6=Sat. */
+  days_of_week?: number[];
+  /** Inclusive last date (YYYY-MM-DD). Null = no end. */
+  end_date?: string;
+  /** Max occurrences. Null = unlimited. */
+  count?: number;
+}
+
+export interface CalendarEvent {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  /** ISO timestamptz, or ISO date string when all_day=true */
+  start_at: string;
+  end_at: string | null;
+  all_day: boolean;
+  color: CalendarColorKey;
+  location: string | null;
+  link: string | null;
+  recurrence: RecurrenceRule | null;
+  /** Non-null = this is an exception to a recurring series */
+  recurrence_parent_id: string | null;
+  recurrence_original_date: string | null;
+  is_exception_cancelled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CalendarOccurrence {
+  /** Unique render key: `${masterId}:${occurrenceDate}` for recurring, `${id}` for single */
+  key: string;
+  masterId: string;
+  /** YYYY-MM-DD of this specific occurrence */
+  occurrenceDate: string;
+  startAt: Date;
+  endAt: Date | null;
+  /** Inclusive day count: 1 for same-day events */
+  durationDays: number;
+  /** Exception event if modified, otherwise master */
+  event: CalendarEvent;
+  isRecurring: boolean;
+  isCancelled: boolean;
+  /** Read-only release date synthesised from releases table */
+  isReleaseDate?: boolean;
+}

@@ -62,7 +62,7 @@ export default function DonatePage() {
             <Heart className="h-7 w-7 text-pink-400" />
           </div>
 
-          <h1 className="text-2xl font-bold text-white">Support ANR</h1>
+          <h1 className="text-2xl font-bold text-white">Support anr</h1>
           <p className="mt-3 text-sm text-neutral-400">
             This platform is free for every artist. Your donation helps cover
             server costs, distribution fees, and keeps the service running for

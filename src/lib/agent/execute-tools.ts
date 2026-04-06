@@ -9,6 +9,13 @@ import {
   type FeedbackCommentRow,
 } from "@/lib/feedback/build-comment-tree";
 import { buildGuestListenUrl } from "@/lib/utils/public-app-url";
+import {
+  expandAllEvents,
+  toDateStr,
+  parseDate,
+  addDays,
+} from "@/lib/utils/calendar-recurrence";
+import type { CalendarEvent } from "@/lib/supabase/types";
 
 export type { ToolExecutionResult };
 
@@ -123,6 +130,62 @@ async function executeReadToolInner(
         };
       });
       return JSON.stringify({ feedbackLinks: rows });
+    }
+    case "list_calendar_events": {
+      let raw: { start_date?: string; end_date?: string };
+      try {
+        raw = JSON.parse(argsJson || "{}") as { start_date?: string; end_date?: string };
+      } catch {
+        return JSON.stringify({ error: "Invalid JSON in tool arguments" });
+      }
+      const todayStr = toDateStr(new Date());
+      const startStr = raw.start_date ?? todayStr;
+      const endStr =
+        raw.end_date ?? toDateStr(addDays(parseDate(startStr), 30));
+
+      const rangeStart = parseDate(startStr);
+      const rangeEnd = parseDate(endStr);
+
+      const { data: evtData, error: evtErr } = await supabase
+        .from("calendar_events")
+        .select("*")
+        .gte("start_at", rangeStart.toISOString())
+        .lte("start_at", rangeEnd.toISOString());
+      if (evtErr) return JSON.stringify({ error: evtErr.message });
+
+      const { data: relData } = await supabase
+        .from("releases")
+        .select("title, release_date")
+        .not("release_date", "is", null);
+
+      const calEvents = (evtData ?? []) as CalendarEvent[];
+      const occs = expandAllEvents(calEvents, rangeStart, rangeEnd).map((o) => ({
+        masterId: o.masterId,
+        occurrenceDate: o.occurrenceDate,
+        startAt: o.startAt.toISOString(),
+        endAt: o.endAt?.toISOString() ?? null,
+        title: o.event.title,
+        allDay: o.event.all_day,
+        color: o.event.color,
+        location: o.event.location,
+        link: o.event.link,
+        description: o.event.description,
+        isRecurring: o.isRecurring,
+      }));
+
+      const relOccs = ((relData ?? []) as Array<{ title: string; release_date: string }>)
+        .filter((r) => r.release_date >= startStr && r.release_date <= endStr)
+        .map((r) => ({
+          masterId: null,
+          occurrenceDate: r.release_date,
+          startAt: r.release_date + "T00:00:00Z",
+          endAt: null,
+          title: `Release date: ${r.title}`,
+          allDay: true,
+          isReleaseDate: true,
+        }));
+
+      return JSON.stringify({ events: [...occs, ...relOccs], start_date: startStr, end_date: endStr });
     }
     case "get_guest_listen_url": {
       let raw: { catalog_song_version_id?: string };

@@ -12,6 +12,7 @@ import {
   ListMusic,
   MessageSquare,
   Sparkles,
+  CalendarDays,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
@@ -23,6 +24,7 @@ import { CatalogPlayerBar } from "@/components/dashboard/CatalogPlayerBar";
 
 const navItems = [
   { href: "/assistant", label: "Assistant", icon: Sparkles },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/releases", label: "Releases", icon: Disc3 },
   { href: "/catalog", label: "Library", icon: ListMusic },
   { href: "/feedback", label: "Feedback", icon: MessageSquare },
@@ -64,7 +66,7 @@ export default function DashboardLayout({
         <aside className="fixed inset-y-0 left-0 z-30 flex w-56 flex-col border-r border-neutral-800 bg-black">
           <div className="flex h-14 items-center border-b border-neutral-800 px-4">
             <Link href="/releases" className="text-lg font-bold text-white">
-              ANR
+              anr
             </Link>
           </div>
 
@@ -78,7 +80,7 @@ export default function DashboardLayout({
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
                     active
-                      ? "bg-neutral-800 text-white"
+                      ? "bg-neutral-900 text-accent"
                       : "text-neutral-400 hover:bg-neutral-900 hover:text-white"
                   )}
                 >

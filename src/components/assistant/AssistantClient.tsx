@@ -559,7 +559,7 @@ export function AssistantClient() {
           </p>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 font-reading">
           {!threadId && !loadingThreads && (
             <p className="text-sm text-neutral-500">
               Create a new chat to get started.
@@ -725,7 +725,7 @@ export function AssistantClient() {
               }
               disabled={!threadId || sending}
               rows={2}
-              className="min-h-[44px] flex-1 resize-none rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="min-h-[44px] flex-1 resize-none rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 font-reading text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20"
             />
             <Button
               type="button"

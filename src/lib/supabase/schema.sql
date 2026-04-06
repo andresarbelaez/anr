@@ -793,3 +793,48 @@ create policy "agent_attachments delete own"
   on storage.objects for delete using (
     bucket_id = 'agent_attachments' and (storage.foldername (name))[1] = auth.uid()::text
   );
+
+-- ============================================================
+-- Calendar events
+-- ============================================================
+-- Single events:    recurrence IS NULL, recurrence_parent_id IS NULL
+-- Recurring master: recurrence IS NOT NULL, recurrence_parent_id IS NULL
+-- Exception (edit): recurrence_parent_id NOT NULL, is_exception_cancelled = false
+-- Exception (del):  recurrence_parent_id NOT NULL, is_exception_cancelled = true
+-- "This and following" edit/delete → truncate master end_date + optional new master
+-- "All events" edit → update master row; delete → delete master (cascade exceptions)
+-- Release dates appear on the calendar read-only (pulled from releases table in UI).
+-- ============================================================
+
+create table if not exists public.calendar_events (
+  id                       uuid        primary key default gen_random_uuid(),
+  user_id                  uuid        not null references auth.users(id) on delete cascade,
+  title                    text        not null,
+  description              text,
+  start_at                 timestamptz not null,
+  end_at                   timestamptz,
+  all_day                  boolean     not null default false,
+  color                    text        not null default 'default',
+  location                 text,
+  link                     text,
+  -- JSONB recurrence rule: { frequency, interval, days_of_week?, end_date?, count? }
+  recurrence               jsonb,
+  -- Exception fields (null on master rows)
+  recurrence_parent_id     uuid        references public.calendar_events(id) on delete cascade,
+  recurrence_original_date date,
+  is_exception_cancelled   boolean     not null default false,
+  created_at               timestamptz not null default now(),
+  updated_at               timestamptz not null default now()
+);
+
+alter table public.calendar_events enable row level security;
+
+drop policy if exists "calendar_events_owner" on public.calendar_events;
+create policy "calendar_events_owner"
+  on public.calendar_events for all
+  using  (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create trigger set_updated_at_calendar_events
+  before update on public.calendar_events
+  for each row execute function update_updated_at();

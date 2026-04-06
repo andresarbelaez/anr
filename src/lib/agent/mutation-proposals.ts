@@ -23,6 +23,9 @@ const MUTATION_NAMES = new Set([
   "create_crm_contact",
   "update_crm_contact",
   "delete_crm_contact",
+  "create_calendar_event",
+  "update_calendar_event",
+  "delete_calendar_event",
 ]);
 
 export function isMutationTool(name: string): boolean {
@@ -553,6 +556,66 @@ export async function runMutationToolAndMaybeQueue(
       summary = `Delete CRM contact ${contactId.slice(0, 8)}…`;
       break;
     }
+    case "create_calendar_event": {
+      const title = asNonEmptyString(args.title);
+      const startAt = asNonEmptyString(args.start_at);
+      if (!title || !startAt) {
+        return { content: JSON.stringify({ error: "create_calendar_event: title and start_at required" }) };
+      }
+      cleanArgs.title = title;
+      cleanArgs.start_at = startAt;
+      if (args.end_at !== undefined) cleanArgs.end_at = args.end_at;
+      if (typeof args.all_day === "boolean") cleanArgs.all_day = args.all_day;
+      if (args.description !== undefined) cleanArgs.description = args.description;
+      if (args.color !== undefined) cleanArgs.color = args.color;
+      if (args.location !== undefined) cleanArgs.location = args.location;
+      if (args.link !== undefined) cleanArgs.link = args.link;
+      if (args.recurrence !== undefined) cleanArgs.recurrence = args.recurrence;
+      summary = `Create calendar event "${title}"`;
+      break;
+    }
+    case "update_calendar_event": {
+      const eventId = asUuid(args.event_id);
+      if (!eventId) {
+        return { content: JSON.stringify({ error: "update_calendar_event: valid event_id required" }) };
+      }
+      const scope = args.scope as string;
+      if (!["this", "following", "all"].includes(scope)) {
+        return { content: JSON.stringify({ error: "update_calendar_event: scope must be 'this', 'following', or 'all'" }) };
+      }
+      if ((scope === "this" || scope === "following") && !asNonEmptyString(args.occurrence_date)) {
+        return { content: JSON.stringify({ error: "update_calendar_event: occurrence_date required for scope 'this' or 'following'" }) };
+      }
+      cleanArgs.event_id = eventId;
+      cleanArgs.scope = scope;
+      if (args.occurrence_date) cleanArgs.occurrence_date = args.occurrence_date;
+      if (args.title !== undefined) cleanArgs.title = args.title;
+      if (args.start_at !== undefined) cleanArgs.start_at = args.start_at;
+      if (args.end_at !== undefined) cleanArgs.end_at = args.end_at;
+      if (typeof args.all_day === "boolean") cleanArgs.all_day = args.all_day;
+      if (args.description !== undefined) cleanArgs.description = args.description;
+      if (args.color !== undefined) cleanArgs.color = args.color;
+      if (args.location !== undefined) cleanArgs.location = args.location;
+      if (args.link !== undefined) cleanArgs.link = args.link;
+      if (args.recurrence !== undefined) cleanArgs.recurrence = args.recurrence;
+      summary = `Update calendar event ${eventId.slice(0, 8)}… (${scope})`;
+      break;
+    }
+    case "delete_calendar_event": {
+      const eventId = asUuid(args.event_id);
+      if (!eventId) {
+        return { content: JSON.stringify({ error: "delete_calendar_event: valid event_id required" }) };
+      }
+      const scope = args.scope as string;
+      if (!["this", "following", "all"].includes(scope)) {
+        return { content: JSON.stringify({ error: "delete_calendar_event: scope must be 'this', 'following', or 'all'" }) };
+      }
+      cleanArgs.event_id = eventId;
+      cleanArgs.scope = scope;
+      if (args.occurrence_date) cleanArgs.occurrence_date = args.occurrence_date;
+      summary = `Delete calendar event ${eventId.slice(0, 8)}… (${scope})`;
+      break;
+    }
     default:
       return { content: JSON.stringify({ error: `Unknown mutation tool: ${name}` }) };
   }
@@ -1009,6 +1072,115 @@ async function applyApprovedMutation(
       const { error } = await supabase.from("crm_contacts").delete().eq("id", contactId);
       if (error) return { ok: false, message: error.message };
       return { ok: true, message: "CRM contact deleted." };
+    }
+    case "create_calendar_event": {
+      const payload: Record<string, unknown> = {
+        user_id: userId,
+        title: args.title,
+        start_at: args.start_at,
+      };
+      if (args.end_at !== undefined) payload.end_at = args.end_at;
+      if (args.all_day !== undefined) payload.all_day = args.all_day;
+      if (args.description !== undefined) payload.description = args.description;
+      if (args.color !== undefined) payload.color = args.color;
+      if (args.location !== undefined) payload.location = args.location;
+      if (args.link !== undefined) payload.link = args.link;
+      if (args.recurrence !== undefined) payload.recurrence = args.recurrence;
+      const { error } = await supabase.from("calendar_events").insert(payload);
+      if (error) return { ok: false, message: error.message };
+      return { ok: true, message: `Calendar event "${args.title as string}" created.` };
+    }
+    case "update_calendar_event": {
+      const eventId = asUuid(args.event_id);
+      if (!eventId) return { ok: false, message: "Invalid event_id" };
+      const scope = args.scope as string;
+      const occDate = typeof args.occurrence_date === "string" ? args.occurrence_date : null;
+
+      const { data: master, error: masterErr } = await supabase
+        .from("calendar_events")
+        .select("*")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (masterErr || !master) return { ok: false, message: masterErr?.message ?? "Event not found" };
+
+      const patch: Record<string, unknown> = {};
+      if (args.title !== undefined) patch.title = args.title;
+      if (args.start_at !== undefined) patch.start_at = args.start_at;
+      if (args.end_at !== undefined) patch.end_at = args.end_at;
+      if (args.all_day !== undefined) patch.all_day = args.all_day;
+      if (args.description !== undefined) patch.description = args.description;
+      if (args.color !== undefined) patch.color = args.color;
+      if (args.location !== undefined) patch.location = args.location;
+      if (args.link !== undefined) patch.link = args.link;
+      if (args.recurrence !== undefined) patch.recurrence = args.recurrence;
+
+      if (!scope || scope === "all") {
+        const { error } = await supabase.from("calendar_events").update(patch).eq("id", eventId);
+        if (error) return { ok: false, message: error.message };
+      } else if (scope === "this" && occDate) {
+        const excPatch = { ...patch, recurrence: null, recurrence_parent_id: eventId, recurrence_original_date: occDate, is_exception_cancelled: false, user_id: userId };
+        const { data: existing } = await supabase.from("calendar_events").select("id").eq("recurrence_parent_id", eventId).eq("recurrence_original_date", occDate).maybeSingle();
+        if (existing) {
+          await supabase.from("calendar_events").update(excPatch).eq("id", existing.id as string);
+        } else {
+          const baseEvent = master as Record<string, unknown>;
+          await supabase.from("calendar_events").insert({ ...baseEvent, ...excPatch, id: undefined, created_at: undefined, updated_at: undefined });
+        }
+      } else if (scope === "following" && occDate) {
+        const prevDay = new Date(occDate);
+        prevDay.setDate(prevDay.getDate() - 1);
+        const prevDayStr = prevDay.toISOString().split("T")[0];
+        const updatedRecurrence = (master as Record<string, unknown>).recurrence
+          ? { ...(master as Record<string, unknown>).recurrence as object, end_date: prevDayStr }
+          : null;
+        await supabase.from("calendar_events").update({ recurrence: updatedRecurrence }).eq("id", eventId);
+        await supabase.from("calendar_events").insert({ user_id: userId, ...patch, start_at: args.start_at ?? (master as Record<string, unknown>).start_at });
+      }
+      return { ok: true, message: "Calendar event updated." };
+    }
+    case "delete_calendar_event": {
+      const eventId = asUuid(args.event_id);
+      if (!eventId) return { ok: false, message: "Invalid event_id" };
+      const scope = args.scope as string;
+      const occDate = typeof args.occurrence_date === "string" ? args.occurrence_date : null;
+
+      const { data: master, error: masterErr } = await supabase
+        .from("calendar_events")
+        .select("*")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (masterErr || !master) return { ok: false, message: masterErr?.message ?? "Event not found" };
+
+      if (!scope || scope === "all") {
+        const { error } = await supabase.from("calendar_events").delete().eq("id", eventId);
+        if (error) return { ok: false, message: error.message };
+      } else if (scope === "this" && occDate) {
+        const baseEvent = master as Record<string, unknown>;
+        await supabase.from("calendar_events").insert({
+          user_id: userId,
+          title: baseEvent.title,
+          start_at: baseEvent.start_at,
+          all_day: baseEvent.all_day,
+          color: baseEvent.color,
+          recurrence_parent_id: eventId,
+          recurrence_original_date: occDate,
+          is_exception_cancelled: true,
+        });
+      } else if (scope === "following" && occDate) {
+        const prevDay = new Date(occDate);
+        prevDay.setDate(prevDay.getDate() - 1);
+        const prevDayStr = prevDay.toISOString().split("T")[0];
+        const baseEvent = master as Record<string, unknown>;
+        if (occDate === ((baseEvent.start_at as string) ?? "").split("T")[0]) {
+          await supabase.from("calendar_events").delete().eq("id", eventId);
+        } else {
+          const updatedRecurrence = baseEvent.recurrence
+            ? { ...(baseEvent.recurrence as object), end_date: prevDayStr }
+            : null;
+          await supabase.from("calendar_events").update({ recurrence: updatedRecurrence }).eq("id", eventId);
+        }
+      }
+      return { ok: true, message: "Calendar event deleted." };
     }
     default:
       return { ok: false, message: `Unknown tool: ${toolName}` };
