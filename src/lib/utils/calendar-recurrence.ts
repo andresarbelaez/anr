@@ -62,8 +62,8 @@ function addYears(d: Date, n: number): Date {
   return r;
 }
 
-/** Sunday of the week containing d */
-function weekSunday(d: Date): Date {
+/** Sunday of the week containing d (local calendar). */
+export function weekSunday(d: Date): Date {
   const r = startOfDay(d);
   r.setDate(r.getDate() - r.getDay());
   return r;

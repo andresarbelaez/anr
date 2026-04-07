@@ -1,9 +1,6 @@
-import { AssistantClient } from "@/components/assistant/AssistantClient";
+import { redirect } from "next/navigation";
 
-export default function AssistantPage() {
-  return (
-    <div>
-      <AssistantClient />
-    </div>
-  );
+/** Legacy assistant URL → studio Assistant window. */
+export default function AssistantRedirectPage() {
+  redirect("/studio?open=assistant");
 }

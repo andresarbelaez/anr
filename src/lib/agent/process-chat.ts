@@ -10,6 +10,7 @@ import { AGENT_ALL_TOOLS } from "@/lib/agent/tool-schemas";
 import { executeAgentTool } from "@/lib/agent/execute-tools";
 import { buildAgentSystemPrompt } from "@/lib/agent/system-prompt";
 import type { OpenAIToolCall } from "@/lib/agent/llm-openai-compatible";
+import { maybeRotateAssistantSession } from "@/lib/agent/assistant-conversation";
 
 const MAX_ITERATIONS = 8;
 
@@ -46,6 +47,7 @@ export type AgentSsePayload =
       summary: string;
       toolName: string;
     }
+  | { type: "session_rotated"; activeThreadId: string }
   | { type: "done" };
 
 async function* runAgentToolLoop(
@@ -210,10 +212,17 @@ export async function* runAgentChat(
     return;
   }
 
+  const { threadId: writableThreadId, rotated } =
+    await maybeRotateAssistantSession(supabase, userId, threadId);
+
+  if (rotated) {
+    yield { type: "session_rotated", activeThreadId: writableThreadId };
+  }
+
   const { data: insertedUser, error: insUserErr } = await supabase
     .from("agent_messages")
     .insert({
-      thread_id: threadId,
+      thread_id: writableThreadId,
       role: "user",
       content: userText.trim() || null,
       attachments,
@@ -232,17 +241,26 @@ export async function* runAgentChat(
 
   yield { type: "user_message", id: insertedUser.id as string };
 
-  if (!thread.title && userText.trim()) {
+  const { data: tipMeta } = await supabase
+    .from("agent_threads")
+    .select("title")
+    .eq("id", writableThreadId)
+    .maybeSingle();
+  const tipTitle = (tipMeta?.title as string | null)?.trim() ?? "";
+  if (!tipTitle && userText.trim()) {
     const title = userText.trim().slice(0, 72);
-    await supabase.from("agent_threads").update({ title }).eq("id", threadId);
+    await supabase
+      .from("agent_threads")
+      .update({ title })
+      .eq("id", writableThreadId);
   }
 
   await supabase
     .from("agent_threads")
     .update({ updated_at: new Date().toISOString() })
-    .eq("id", threadId);
+    .eq("id", writableThreadId);
 
-  yield* runAgentToolLoop(supabase, userId, threadId, cfg);
+  yield* runAgentToolLoop(supabase, userId, writableThreadId, cfg);
 }
 
 /**
@@ -275,12 +293,19 @@ export async function* continueAgentChat(
     return;
   }
 
+  const { threadId: writableThreadId, rotated } =
+    await maybeRotateAssistantSession(supabase, userId, threadId);
+
+  if (rotated) {
+    yield { type: "session_rotated", activeThreadId: writableThreadId };
+  }
+
   const note = `I approved that change in the panel. ${outcomeMessage} Please confirm briefly for me.`;
 
   const { data: insertedUser, error: insErr } = await supabase
     .from("agent_messages")
     .insert({
-      thread_id: threadId,
+      thread_id: writableThreadId,
       role: "user",
       content: note,
       attachments: [],
@@ -306,7 +331,7 @@ export async function* continueAgentChat(
   await supabase
     .from("agent_threads")
     .update({ updated_at: new Date().toISOString() })
-    .eq("id", threadId);
+    .eq("id", writableThreadId);
 
-  yield* runAgentToolLoop(supabase, userId, threadId, cfg);
+  yield* runAgentToolLoop(supabase, userId, writableThreadId, cfg);
 }

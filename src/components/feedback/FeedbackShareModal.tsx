@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import type { FeedbackVersionLink } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils/cn";
+import { S } from "@/components/studio/ui/s";
 
 type Props = {
   open: boolean;
@@ -162,7 +163,12 @@ export function FeedbackShareModal({
                 <input
                   readOnly
                   value={shareUrl}
-                  className="min-w-0 flex-1 rounded-lg border border-neutral-800 bg-black px-3 py-2 text-xs text-neutral-200"
+                  className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[rgba(168,92,16,0.38)]"
+                  style={{
+                    background: S.bg,
+                    borderColor: S.border,
+                    color: S.textPrimary,
+                  }}
                 />
                 <Button
                   type="button"
@@ -181,7 +187,8 @@ export function FeedbackShareModal({
                 checked={linkRow.enabled}
                 disabled={saving}
                 onChange={(e) => void setEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-neutral-600 bg-black"
+                className="h-4 w-4 rounded border accent-[#a85c10]"
+                style={{ borderColor: S.border }}
               />
               <span className="text-sm text-neutral-300">
                 Link enabled (guests can listen and comment)

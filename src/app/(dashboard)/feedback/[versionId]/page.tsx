@@ -1,10 +1,11 @@
-import { FeedbackArtistDetailClient } from "@/components/feedback/FeedbackArtistDetailClient";
+import { redirect } from "next/navigation";
 
-export default async function FeedbackVersionPage({
+/** Legacy detail URL → studio with feedback stack opened to this version. */
+export default async function FeedbackVersionRedirectPage({
   params,
 }: {
   params: Promise<{ versionId: string }>;
 }) {
   const { versionId } = await params;
-  return <FeedbackArtistDetailClient versionId={versionId} />;
+  redirect(`/studio?feedbackVersion=${encodeURIComponent(versionId)}`);
 }

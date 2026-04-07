@@ -756,6 +756,32 @@ create policy "Users manage own agent mutation proposals"
 create trigger set_updated_at before update on public.agent_threads
   for each row execute function public.update_updated_at();
 
+-- Assistant: single visible conversation — chain backend sessions + one active pointer per user
+alter table public.agent_threads
+  add column if not exists previous_thread_id uuid references public.agent_threads (id) on delete set null;
+
+create index if not exists idx_agent_threads_previous
+  on public.agent_threads (previous_thread_id)
+  where previous_thread_id is not null;
+
+create table if not exists public.assistant_conversation_state (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  active_thread_id uuid not null references public.agent_threads (id) on delete restrict,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_assistant_conversation_state_thread
+  on public.assistant_conversation_state (active_thread_id);
+
+alter table public.assistant_conversation_state enable row level security;
+
+drop policy if exists "Users manage own assistant conversation state" on public.assistant_conversation_state;
+
+create policy "Users manage own assistant conversation state"
+  on public.assistant_conversation_state for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'agent_attachments',

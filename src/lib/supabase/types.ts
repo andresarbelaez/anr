@@ -224,6 +224,9 @@ export interface CalendarEvent {
   updated_at: string;
 }
 
+/** Recurring event edit/delete scope (dashboard + agent calendar tools). */
+export type RecurringEditScope = "this" | "following" | "all";
+
 export interface CalendarOccurrence {
   /** Unique render key: `${masterId}:${occurrenceDate}` for recurring, `${id}` for single */
   key: string;

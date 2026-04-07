@@ -1,7 +1,6 @@
-import { CalendarClient } from "@/components/dashboard/calendar/CalendarClient";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Calendar — anr" };
-
-export default function CalendarPage() {
-  return <CalendarClient />;
+/** Legacy calendar URL → studio Calendar window. */
+export default function CalendarRedirectPage() {
+  redirect("/studio?open=calendar");
 }

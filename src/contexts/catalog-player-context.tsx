@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -15,6 +16,8 @@ export type CatalogActiveTrack = {
   src: string;
   songTitle: string;
   versionLabel: string;
+  /** Increments on each successful user-initiated play; used by the studio Library embed to skip autoplay on remount. */
+  playRequestId: number;
 };
 
 type CatalogPlayerContextValue = {
@@ -27,6 +30,11 @@ type CatalogPlayerContextValue = {
     versionLabel: string
   ) => Promise<void>;
   clearCatalogPlayer: () => void;
+  /**
+   * Studio Library embedded player: returns true only when `playRequestId` is newer than the last one
+   * this gate accepted (user clicked a version), not when the same request is rebound after remount.
+   */
+  shouldAutoplayStudioLibraryEmbed: (playRequestId: number) => boolean;
 };
 
 const CatalogPlayerContext = createContext<CatalogPlayerContextValue | null>(
@@ -39,6 +47,18 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
   );
   const [playerLoading, setPlayerLoading] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const playRequestSeqRef = useRef(0);
+  const lastLibraryEmbedConsumedRequestIdRef = useRef(0);
+
+  const shouldAutoplayStudioLibraryEmbed = useCallback(
+    (playRequestId: number) => {
+      const prev = lastLibraryEmbedConsumedRequestIdRef.current;
+      if (playRequestId <= prev) return false;
+      lastLibraryEmbedConsumedRequestIdRef.current = playRequestId;
+      return true;
+    },
+    []
+  );
 
   const playCatalogVersion = useCallback(
     async (
@@ -62,10 +82,12 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        const playRequestId = ++playRequestSeqRef.current;
         setActiveTrack({
           src: data.signedUrl,
           songTitle,
           versionLabel,
+          playRequestId,
         });
       } catch {
         setPlayerError("Could not load audio.");
@@ -80,6 +102,7 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
     setActiveTrack(null);
     setPlayerError(null);
     setPlayerLoading(false);
+    lastLibraryEmbedConsumedRequestIdRef.current = 0;
   }, []);
 
   const value = useMemo(
@@ -89,6 +112,7 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
       playerError,
       playCatalogVersion,
       clearCatalogPlayer,
+      shouldAutoplayStudioLibraryEmbed,
     }),
     [
       activeTrack,
@@ -96,6 +120,7 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
       playerError,
       playCatalogVersion,
       clearCatalogPlayer,
+      shouldAutoplayStudioLibraryEmbed,
     ]
   );
 
