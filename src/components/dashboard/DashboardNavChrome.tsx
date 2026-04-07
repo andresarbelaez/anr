@@ -97,7 +97,7 @@ export function DashboardNavChrome() {
         href="/studio"
         className="shrink-0 px-2 text-lg font-bold text-white transition hover:text-accent"
       >
-        anr
+        sidestage
       </Link>
       <nav
         className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

@@ -52,7 +52,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/releases";
+    url.pathname = "/studio";
     return NextResponse.redirect(url);
   }
 

@@ -7,7 +7,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-black">
       {/* Nav */}
       <header className="flex items-center justify-between px-6 py-4 md:px-12">
-        <span className="text-lg font-bold text-white">anr</span>
+        <span className="text-lg font-bold text-white">sidestage</span>
         <div className="flex items-center gap-3">
           <Link href="/login">
             <Button variant="ghost" size="sm">
@@ -68,7 +68,7 @@ export default function HomePage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <h3 className="text-lg font-semibold text-white">
-              anr-1, your music manager
+              sidestage-1, your music manager
             </h3>
             <p className="mt-2 text-sm text-neutral-400">
               An AI that knows your catalog, contacts, and releases. Ask it to
@@ -99,7 +99,7 @@ export default function HomePage() {
               Kept free by the community
             </h3>
             <p className="mt-2 text-sm text-neutral-400">
-              anr runs on donations from artists and fans who believe music
+              sidestage runs on donations from artists and fans who believe music
               distribution shouldn&rsquo;t cost money. No commission. Ever.
             </p>
           </div>
@@ -112,7 +112,7 @@ export default function HomePage() {
           Your career doesn&rsquo;t need a deal.
         </h2>
         <p className="mx-auto mt-3 max-w-md text-neutral-400">
-          Join independent artists building their careers with anr.
+          Join independent artists building their careers with sidestage.
         </p>
         <Link href="/signup" className="mt-8 inline-block">
           <Button size="lg">
@@ -125,7 +125,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-neutral-900 px-6 py-8 text-center text-sm text-neutral-600">
         <p>
-          anr — Built for independent artists.{" "}
+          sidestage — Built for independent artists.{" "}
           <a href="/donate" className="underline hover:text-neutral-400">
             Support this project
           </a>

@@ -19,6 +19,7 @@ import {
 import { CATALOG_MP3_BUCKET } from "@/lib/utils/catalog-mp3";
 import { CatalogVersionDeleteModal } from "@/components/catalog/CatalogVersionDeleteModal";
 import { StudioNewCatalogSongModal } from "@/components/studio/StudioNewCatalogSongModal";
+import { Button } from "@/components/ui/button";
 
 type SongRow = CatalogSong & { releaseTitle: string | null };
 
@@ -352,7 +353,7 @@ export function StudioLibraryWindow({
         release_title: s.release_id ? releaseMap[s.release_id] ?? "" : "",
         versions_json: JSON.stringify((versMap[s.id] || []).map((v) => ({ label: v.label, file_name: v.file_name }))),
       }));
-      downloadCsv(`anr-catalog-export-${new Date().toISOString().slice(0, 10)}.csv`, exportRows);
+      downloadCsv(`sidestage-catalog-export-${new Date().toISOString().slice(0, 10)}.csv`, exportRows);
     } catch (e) {
       setIoMessage({ kind: "error", text: e instanceof Error ? e.message : "Export failed." });
     } finally { setExporting(false); }
@@ -460,26 +461,16 @@ export function StudioLibraryWindow({
                 onFile={handleImport}
                 disabled={importing}
               />
-              <button
+              <Button
                 type="button"
+                variant="studioAccent"
+                size="xs"
                 onClick={() => setNewSongModalOpen(true)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: S.accentText,
-                  background: S.accent,
-                  border: `1px solid ${S.accent}`,
-                  borderRadius: 2,
-                  padding: "5px 9px",
-                  cursor: "pointer",
-                }}
+                className="!gap-1.5 !rounded-sm !font-medium"
               >
                 <Plus size={10} strokeWidth={3} />
                 New
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -528,23 +519,15 @@ export function StudioLibraryWindow({
                   Track demos, alternates, and references. Link to a release
                   when ready.
                 </p>
-                <button
+                <Button
                   type="button"
+                  variant="studioAccent"
+                  size="sm"
                   onClick={() => setNewSongModalOpen(true)}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: S.accentText,
-                    background: S.accent,
-                    border: `1px solid ${S.accent}`,
-                    borderRadius: 2,
-                    padding: "6px 12px",
-                    cursor: "pointer",
-                    marginTop: 4,
-                  }}
+                  className="!mt-1 !rounded-sm !font-medium"
                 >
                   Add a song
-                </button>
+                </Button>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -632,21 +615,16 @@ function CsvBtn({ icon, label, onClick, disabled }: {
   icon: React.ReactNode; label: string; onClick: () => void; disabled: boolean;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outlineSoft"
+      size="micro"
       onClick={onClick}
       disabled={disabled}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 5,
-        fontSize: 11, fontWeight: 500,
-        color: disabled ? S.textFaint : S.textSecondary,
-        background: "transparent", border: `1px solid ${S.border}`,
-        borderRadius: 2, padding: "5px 8px", cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.6 : 1,
-      }}
+      className="gap-1.5 !border-[#d4b896] !text-[11px] !font-medium text-[#5a3518] disabled:!text-[#b89070]"
     >
       {icon} {label}
-    </button>
+    </Button>
   );
 }
 
@@ -656,21 +634,16 @@ function CsvFileBtn({ label, onFile, disabled }: {
   const inputRef = { current: null as HTMLInputElement | null };
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="outlineSoft"
+        size="micro"
         onClick={() => inputRef.current?.click()}
         disabled={disabled}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 5,
-          fontSize: 11, fontWeight: 500,
-          color: disabled ? S.textFaint : S.textSecondary,
-          background: "transparent", border: `1px solid ${S.border}`,
-          borderRadius: 2, padding: "5px 8px", cursor: disabled ? "not-allowed" : "pointer",
-          opacity: disabled ? 0.6 : 1,
-        }}
+        className="gap-1.5 !border-[#d4b896] !text-[11px] !font-medium text-[#5a3518] disabled:!text-[#b89070]"
       >
         <Upload size={10} /> {label}
-      </button>
+      </Button>
       <input
         ref={(el) => { inputRef.current = el; }}
         type="file"
@@ -730,25 +703,18 @@ function SongCard({
             </span>
           )}
         </div>
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation();
             onEdit();
           }}
-          style={{
-            fontSize: 11,
-            color: S.textSecondary,
-            textDecoration: "none",
-            flexShrink: 0,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-          }}
+          className="!text-[#5a3518] hover:!text-[#1e1008] hover:!no-underline"
         >
           Edit
-        </button>
+        </Button>
       </div>
 
       {/* Versions */}
@@ -759,108 +725,51 @@ function SongCard({
             const rowBusy = versionBusyId === v.id;
             return (
               <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                <button
+                <Button
                   type="button"
+                  variant="outlineSoft"
+                  size="micro"
                   disabled={rowBusy}
                   onClick={() => onPlay(v.storage_path, song.title, label)}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    background: "transparent", border: `1px solid ${S.borderFaint}`,
-                    borderRadius: 2, padding: "3px 7px", cursor: rowBusy ? "not-allowed" : "pointer",
-                    color: S.textMuted, fontSize: 11, flex: "1 1 auto", minWidth: 0, textAlign: "left",
-                    opacity: rowBusy ? 0.55 : 1,
-                  }}
-                  onMouseEnter={(e) => { if (rowBusy) return; (e.currentTarget as HTMLButtonElement).style.borderColor = S.border; (e.currentTarget as HTMLButtonElement).style.color = S.textSecondary; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = S.borderFaint; (e.currentTarget as HTMLButtonElement).style.color = S.textMuted; }}
+                  className="min-h-[22px] flex-1 min-w-0 justify-start gap-1.5 !text-[11px] opacity-100 disabled:opacity-55"
                 >
-                  <Play size={10} color={S.textFaint} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {v.label ? v.label : <span style={{ color: S.textFaint }}>{v.file_name}</span>}
+                  <Play size={10} className="shrink-0 text-[#b89070]" />
+                  <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                    {v.label ? v.label : <span className="text-[#b89070]">{v.file_name}</span>}
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outlineBlue"
+                  size="micro"
                   disabled={rowBusy}
                   onClick={() => onAskFeedback(v.id, song.title, label)}
-                  style={{
-                    fontSize: 10,
-                    color: "#2563eb",
-                    background: "transparent",
-                    border: "1px solid rgba(37,99,235,0.38)",
-                    borderRadius: 2,
-                    padding: "3px 6px",
-                    cursor: rowBusy ? "not-allowed" : "pointer",
-                    flexShrink: 0,
-                    opacity: rowBusy ? 0.55 : 1,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (rowBusy) return;
-                    (e.currentTarget as HTMLButtonElement).style.background =
-                      "rgba(37,99,235,0.10)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  }}
+                  className="shrink-0 opacity-100 disabled:opacity-55"
                 >
                   Share
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outlineWarm"
+                  size="micro"
                   disabled={rowBusy}
                   onClick={() => onDownloadVersion(v)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 10,
-                    color: S.textSecondary,
-                    background: "transparent",
-                    border: "1px solid rgba(90,53,24,0.38)",
-                    borderRadius: 2,
-                    padding: "3px 6px",
-                    cursor: rowBusy ? "not-allowed" : "pointer",
-                    flexShrink: 0,
-                    opacity: rowBusy ? 0.55 : 1,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (rowBusy) return;
-                    const b = e.currentTarget as HTMLButtonElement;
-                    b.style.borderColor = "rgba(90,53,24,0.55)";
-                    b.style.background = "rgba(90,53,24,0.08)";
-                  }}
-                  onMouseLeave={(e) => {
-                    const b = e.currentTarget as HTMLButtonElement;
-                    b.style.borderColor = "rgba(90,53,24,0.38)";
-                    b.style.background = "transparent";
-                  }}
+                  className="shrink-0 gap-1 opacity-100 disabled:opacity-55"
                 >
-                  <Download size={10} color={S.textSecondary} />
+                  <Download size={10} className="shrink-0" />
                   Download
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="danger"
+                  size="micro"
                   disabled={rowBusy}
                   onClick={() => onDeleteVersion(v)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 10,
-                    color: S.error,
-                    background: "transparent",
-                    border: `1px solid ${S.error}`,
-                    borderRadius: 2,
-                    padding: "3px 6px",
-                    cursor: rowBusy ? "not-allowed" : "pointer",
-                    flexShrink: 0,
-                    opacity: rowBusy ? 0.55 : 1,
-                  }}
-                  onMouseEnter={(e) => { if (rowBusy) return; (e.currentTarget as HTMLButtonElement).style.background = S.errorBg; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                  className="shrink-0 gap-1 border-[#a82820] text-[#a82820] hover:bg-[rgba(168,40,32,0.10)] opacity-100 disabled:opacity-55"
                 >
-                  <Trash2 size={10} />
+                  <Trash2 size={10} className="shrink-0" />
                   Delete
-                </button>
+                </Button>
               </div>
             );
           })}

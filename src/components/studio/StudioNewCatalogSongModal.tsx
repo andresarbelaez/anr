@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Release } from "@/lib/supabase/types";
 import { S } from "@/components/studio/ui/s";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   open: boolean;
@@ -121,11 +122,11 @@ export function StudioNewCatalogSongModal({ open, onClose, onCreated }: Props) {
       aria-modal="true"
       aria-labelledby="studio-new-song-title"
     >
-      <button
+      <Button
         type="button"
+        variant="bare"
         disabled={saving}
-        className="absolute inset-0"
-        style={{ background: "rgba(28,18,8,0.58)", border: "none", cursor: saving ? "default" : "pointer" }}
+        className="absolute inset-0 h-full min-h-full w-full cursor-pointer bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)] disabled:cursor-default"
         aria-label="Close dialog"
         onClick={() => {
           if (!saving) onClose();
@@ -207,41 +208,26 @@ export function StudioNewCatalogSongModal({ open, onClose, onCreated }: Props) {
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <button
+            <Button
               type="button"
+              variant="outlineSoft"
+              size="sm"
               disabled={saving}
               onClick={onClose}
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                padding: "6px 12px",
-                borderRadius: 3,
-                border: `1px solid ${S.border}`,
-                background: S.bg,
-                color: S.textSecondary,
-                cursor: saving ? "not-allowed" : "pointer",
-                opacity: saving ? 0.6 : 1,
-              }}
+              className="!rounded-sm !border-[#d4b896] !text-xs !font-medium text-[#5a3518]"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="studioAccent"
+              size="sm"
               disabled={saving}
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                padding: "6px 14px",
-                borderRadius: 3,
-                border: `1px solid ${S.accent}`,
-                background: S.accent,
-                color: S.accentText,
-                cursor: saving ? "not-allowed" : "pointer",
-                opacity: saving ? 0.75 : 1,
-              }}
+              loading={saving}
+              className="!rounded-sm !px-3.5 !text-xs !font-semibold"
             >
-              {saving ? "Creating…" : "Create song"}
-            </button>
+              Create song
+            </Button>
           </div>
         </form>
       </div>

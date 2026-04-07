@@ -45,8 +45,8 @@ export function MutationProposalList({
           <div className="mt-2 flex flex-wrap gap-2">
             <Button
               type="button"
+              variant="success"
               size="sm"
-              className="bg-emerald-700 text-white hover:bg-emerald-600"
               disabled={confirming !== null || sending}
               loading={
                 confirming?.id === p.id && confirming?.action === "approve"

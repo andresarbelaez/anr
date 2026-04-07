@@ -1,6 +1,6 @@
-# ANR assistant — product capabilities (curated)
+# sidestage assistant — product capabilities (curated)
 
-This document is injected into the assistant system prompt so the model knows what ANR can do. **Keep it accurate** when shipping features; prefer updating `lib/agent/tool-schemas.ts` tool descriptions in parallel so behavior matches.
+This document is injected into the assistant system prompt so the model knows what sidestage can do. **Keep it accurate** when shipping features; prefer updating `lib/agent/tool-schemas.ts` tool descriptions in parallel so behavior matches.
 
 ## Product areas (dashboard, signed-in artist)
 

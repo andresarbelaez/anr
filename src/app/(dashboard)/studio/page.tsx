@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Press_Start_2P } from "next/font/google";
 import { StudioRoom } from "@/components/studio/StudioRoom";
 
-export const metadata = { title: "anr studio" };
+export const metadata = { title: "sidestage studio" };
 
 const pixelFont = Press_Start_2P({
   subsets: ["latin"],

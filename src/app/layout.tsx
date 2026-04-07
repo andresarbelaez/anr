@@ -24,7 +24,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "anr — your music career, managed",
+  title: "sidestage — your music career, managed",
   description:
     "Distribution, catalog management, royalties, and an AI that knows your work — free, for independent artists.",
 };

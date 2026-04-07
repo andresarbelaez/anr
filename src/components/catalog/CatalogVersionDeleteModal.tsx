@@ -30,9 +30,10 @@ export function CatalogVersionDeleteModal({
       aria-modal="true"
       aria-labelledby="catalog-version-delete-title"
     >
-      <button
+      <Button
         type="button"
-        className="absolute inset-0 bg-black/70"
+        variant="bare"
+        className="absolute inset-0 h-full min-h-full w-full bg-black/70 hover:bg-black/70"
         aria-label="Close dialog"
         disabled={busy}
         onClick={() => {
@@ -63,7 +64,7 @@ export function CatalogVersionDeleteModal({
           </Button>
           <Button
             type="button"
-            variant="danger"
+            variant="dangerSolid"
             size="sm"
             loading={busy}
             onClick={() => void onConfirm()}

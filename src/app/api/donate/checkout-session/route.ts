@@ -63,7 +63,7 @@ export async function POST(request: Request) {
             currency: "usd",
             unit_amount: unitAmountCents,
             product_data: {
-              name: "Donation to ANR",
+              name: "Donation to sidestage",
               description: "Support free distribution for independent artists.",
             },
           },

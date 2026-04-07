@@ -52,7 +52,7 @@ const WINDOWS: Record<string, WindowDef> = {
     content: () => <StudioCalendarWindow />,
   },
   assistant: {
-    title: "ANR-1",
+    title: "sidestage-1",
     width: 640,
     height: 540,
     content: () => <StudioAssistantWindow />,
@@ -583,7 +583,7 @@ export function StudioRoom() {
 
       {/* Ambient room label */}
       <div className="pointer-events-none absolute bottom-4 right-5 font-mono text-[9px] uppercase tracking-[0.2em] text-amber-900/40">
-        anr studio
+        sidestage studio
       </div>
     </div>
   );

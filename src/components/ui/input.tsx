@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils/cn";
 import { forwardRef, useState, type InputHTMLAttributes } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -38,10 +39,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {isPassword && (
-            <button
+            <Button
               type="button"
+              variant="bare"
               onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+              className="absolute right-2.5 top-1/2 h-auto min-h-0 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
@@ -50,7 +52,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               ) : (
                 <Eye className="h-4 w-4" />
               )}
-            </button>
+            </Button>
           )}
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}

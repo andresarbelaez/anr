@@ -62,7 +62,7 @@ export default function DonatePage() {
             <Heart className="h-7 w-7 text-pink-400" />
           </div>
 
-          <h1 className="text-2xl font-bold text-white">Support anr</h1>
+          <h1 className="text-2xl font-bold text-white">Support sidestage</h1>
           <p className="mt-3 text-sm text-neutral-400">
             This platform is free for every artist. Your donation helps cover
             server costs, distribution fees, and keeps the service running for
@@ -77,20 +77,22 @@ export default function DonatePage() {
             </p>
             <div className="grid grid-cols-4 gap-2">
               {AMOUNTS.map((a) => (
-                <button
+                <Button
                   key={a}
+                  type="button"
+                  variant={amount === a ? "primary" : "secondary"}
+                  className={`w-full py-2.5 ${
+                    amount === a
+                      ? "!border-white !bg-white !text-black hover:!bg-neutral-200"
+                      : ""
+                  }`}
                   onClick={() => {
                     setAmount(a);
                     setCustomAmount("");
                   }}
-                  className={`rounded-lg border py-2.5 text-sm font-medium transition ${
-                    amount === a
-                      ? "border-white bg-white text-black"
-                      : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
-                  }`}
                 >
                   ${a}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

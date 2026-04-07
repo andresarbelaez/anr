@@ -270,16 +270,17 @@ export function CatalogSongEditClient({
       <div>
         <p className="text-neutral-400">Song not found.</p>
         {embedStudio ? (
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={() => {
               onMissingSong?.();
               if (!onMissingSong) router.push("/studio?open=library");
             }}
-            className="mt-4 text-sm text-white underline"
+            className="mt-4 !text-white hover:!text-neutral-200"
           >
             Back to library
-          </button>
+          </Button>
         ) : (
           <Link href="/catalog" className="mt-4 inline-block text-white underline">
             Back to library
@@ -399,9 +400,8 @@ export function CatalogSongEditClient({
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="danger"
                     size="sm"
-                    className="text-red-400 hover:text-red-300"
                     onClick={() => setVersionToDelete(v)}
                   >
                     Remove

@@ -33,7 +33,7 @@ function LoginPageContent() {
       return;
     }
 
-    router.push("/releases");
+    router.push("/studio");
     router.refresh();
   };
 

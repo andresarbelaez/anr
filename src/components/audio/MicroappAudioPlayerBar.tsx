@@ -10,6 +10,7 @@ import {
 import { Pause, Play, X } from "lucide-react";
 import { formatAudioTime } from "@/lib/utils/format-audio-time";
 import { cn } from "@/lib/utils/cn";
+import { Button } from "@/components/ui/button";
 
 export type MicroappAudioTrack = {
   src: string;
@@ -228,14 +229,16 @@ export const MicroappAudioPlayerBar = forwardRef<
         <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center justify-center gap-3">
           <p className="max-w-md text-center text-sm text-red-300">{error}</p>
           {showDismiss && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={handleClose}
-              className="rounded-lg p-2 text-neutral-400 transition hover:bg-neutral-800 hover:text-white"
+              className="text-neutral-400 hover:text-white"
               aria-label="Dismiss"
             >
               <X className="h-5 w-5" />
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -243,10 +246,10 @@ export const MicroappAudioPlayerBar = forwardRef<
       {track && !loading && (
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-1">
           <div className="flex w-full items-center gap-3">
-            <button
+            <Button
               type="button"
+              variant="circleLight"
               onClick={togglePlay}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200"
               aria-label={playing ? "Pause" : "Play"}
             >
               {playing ? (
@@ -264,7 +267,7 @@ export const MicroappAudioPlayerBar = forwardRef<
                   strokeWidth={0}
                 />
               )}
-            </button>
+            </Button>
             <div className="min-w-0 flex-1 text-left">
               <p className="truncate text-sm font-medium text-white">
                 {track.songTitle}
@@ -274,14 +277,16 @@ export const MicroappAudioPlayerBar = forwardRef<
               </p>
             </div>
             {showDismiss && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={handleClose}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-neutral-400 transition hover:bg-neutral-800 hover:text-white"
+                className="text-neutral-400 hover:text-white"
                 aria-label="Close player"
               >
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
             )}
           </div>
 

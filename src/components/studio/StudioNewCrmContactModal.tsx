@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CrmNewContactForm } from "@/components/crm/CrmNewContactForm";
 import { STUDIO_NEUTRAL_BRIDGE_CSS } from "@/components/studio/ui/studio-neutral-bridge-css";
 import { S } from "@/components/studio/ui/s";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   open: boolean;
@@ -31,14 +32,11 @@ export function StudioNewCrmContactModal({ open, onClose, onCreated }: Props) {
       aria-modal="true"
       aria-labelledby="studio-new-crm-contact-title"
     >
-      <button
+      <Button
         type="button"
+        variant="bare"
         disabled={saving}
-        className="absolute inset-0 border-0"
-        style={{
-          background: "rgba(28,18,8,0.58)",
-          cursor: saving ? "default" : "pointer",
-        }}
+        className="absolute inset-0 h-full min-h-full w-full cursor-pointer bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)] disabled:cursor-default"
         aria-label="Close dialog"
         onClick={() => {
           if (!saving) onClose();

@@ -1,6 +1,6 @@
 import type { PublicFeedbackSessionJson } from "@/lib/feedback/types";
 
-const CACHE_KEY_PREFIX = "anr-fb-listen-v1";
+const CACHE_KEY_PREFIX = "sidestage-fb-listen-v1";
 
 type CachedPayload = {
   songTitle: string;

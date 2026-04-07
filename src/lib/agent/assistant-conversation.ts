@@ -231,7 +231,7 @@ export async function maybeRotateAssistantSession(
     "## Continuity (earlier messages in this conversation)\n\n" +
     (summaryBody ||
       "(No text retained — continue helping the same artist as before.)") +
-    "\n\n---\nYou are still the same anr assistant in one continuous chat; " +
+    "\n\n---\nYou are still the same sidestage assistant in one continuous chat; " +
     "the UI does not show session boundaries.";
 
   const title = (threadMeta?.title as string | null) ?? null;

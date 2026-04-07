@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!profile) return { title: "Artist not found" };
 
   return {
-    title: `${profile.artist_name} — anr`,
+    title: `${profile.artist_name} — sidestage`,
     description: `Listen to music by ${profile.artist_name}`,
   };
 }
@@ -60,7 +60,7 @@ export default async function ArtistProfilePage({ params }: Props) {
         <footer className="mt-20 border-t border-neutral-900 pt-6 text-center text-xs text-neutral-600">
           Distributed for free with{" "}
           <a href="/" className="underline hover:text-neutral-400">
-            anr
+            sidestage
           </a>
         </footer>
       </div>

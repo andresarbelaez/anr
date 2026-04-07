@@ -28,7 +28,7 @@ export default function DonateSuccessPage() {
             href="/"
             className="mt-8 inline-block text-sm font-medium text-white underline-offset-4 hover:underline"
           >
-            Return to anr
+            Return to sidestage
           </Link>
         </div>
       </div>

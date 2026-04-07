@@ -269,7 +269,7 @@ export function StudioCrmWindow({
           collabTokens[row.contact_id].push(token);
         }
       }
-      downloadCsv(`anr-crm-export-${new Date().toISOString().slice(0, 10)}.csv`,
+      downloadCsv(`sidestage-crm-export-${new Date().toISOString().slice(0, 10)}.csv`,
         list.map((c) => ({
           name: c.name, email: c.email ?? "", instagram: c.instagram ?? "",
           tiktok: c.tiktok ?? "", role: c.role ?? "", notes: c.notes ?? "",

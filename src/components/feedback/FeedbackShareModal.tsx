@@ -122,9 +122,10 @@ export function FeedbackShareModal({
       aria-modal="true"
       aria-labelledby="feedback-share-title"
     >
-      <button
+      <Button
         type="button"
-        className="absolute inset-0 bg-black/70"
+        variant="bare"
+        className="absolute inset-0 h-full min-h-full w-full bg-black/70 hover:bg-black/70"
         aria-label="Close dialog"
         onClick={onClose}
       />

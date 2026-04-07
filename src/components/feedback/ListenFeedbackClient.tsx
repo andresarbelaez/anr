@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Pause, Play, Trash2 } from "lucide-react";
 
 function giverStorageKey(token: string) {
-  return `anr-fb-giver-${token}`;
+  return `sidestage-fb-giver-${token}`;
 }
 
 function getOrCreateGiverSecret(token: string): string {
@@ -34,7 +34,7 @@ function getOrCreateGiverSecret(token: string): string {
 }
 
 function postedKey(token: string) {
-  return `anr-fb-posted-${token}`;
+  return `sidestage-fb-posted-${token}`;
 }
 
 function rememberPostedId(token: string, id: string) {
@@ -618,7 +618,7 @@ export function ListenFeedbackClient({ token }: { token: string }) {
       </section>
 
       <p className="text-center text-xs text-neutral-600">
-        Powered by anr.fm — free music distribution for independent artists.
+        Powered by sidestage.fm — free music distribution for independent artists.
       </p>
     </div>
   );
