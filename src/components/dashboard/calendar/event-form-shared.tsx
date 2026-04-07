@@ -53,7 +53,7 @@ const FREQ_LABELS: Record<string, string> = {
   yearly: "year(s)",
 };
 
-function SplitDateInput({
+export function SplitDateInput({
   value,
   onChange,
   fmt,

@@ -59,8 +59,8 @@ const WINDOWS: Record<string, WindowDef> = {
   },
   releases: {
     title: "Releases",
-    width: 560,
-    height: 520,
+    width: 640,
+    height: 560,
     content: (ctx) => (
       <StudioReleasesWindow initialReleaseId={ctx.initialReleaseId ?? null} />
     ),

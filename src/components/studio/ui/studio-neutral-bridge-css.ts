@@ -22,6 +22,7 @@ export const STUDIO_NEUTRAL_BRIDGE_CSS = `
 .studio-neutral-bridge .border-red-900\\/60 { border-color: rgba(168,40,32,0.35) !important; }
 .studio-neutral-bridge .bg-red-950\\/30 { background-color: rgba(168,40,32,0.08) !important; }
 
+.studio-neutral-bridge .bg-neutral-700 { background-color: #d4b896 !important; }
 .studio-neutral-bridge .bg-neutral-800 { background-color: #e8d4bb !important; }
 .studio-neutral-bridge .bg-neutral-900 { background-color: #ede0cc !important; }
 .studio-neutral-bridge .bg-neutral-950 { background-color: #f5ede0 !important; }

@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  EventFormDateFmtToggle,
+  SplitDateInput,
+  useCalendarDateFmt,
+} from "@/components/dashboard/calendar/event-form-shared";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { GENRES } from "@/lib/utils/metadata-validation";
@@ -20,6 +25,8 @@ interface MetadataFormProps {
 }
 
 export function MetadataForm({ data, errors, onChange }: MetadataFormProps) {
+  const { fmt, toggleFmt } = useCalendarDateFmt();
+
   const update = (field: keyof ReleaseMetadata, value: string) => {
     onChange({ ...data, [field]: value });
   };
@@ -59,14 +66,27 @@ export function MetadataForm({ data, errors, onChange }: MetadataFormProps) {
         error={errors.genre}
       />
 
-      <Input
-        id="releaseDate"
-        label="Release Date"
-        type="date"
-        value={data.releaseDate}
-        onChange={(e) => update("releaseDate", e.target.value)}
-        error={errors.releaseDate}
-      />
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <label
+            htmlFor="release-date-fields"
+            className="block text-sm font-medium text-neutral-300"
+          >
+            Release Date
+          </label>
+          <EventFormDateFmtToggle fmt={fmt} toggleFmt={toggleFmt} />
+        </div>
+        <div id="release-date-fields">
+          <SplitDateInput
+            value={data.releaseDate}
+            onChange={(v) => update("releaseDate", v)}
+            fmt={fmt}
+          />
+        </div>
+        {errors.releaseDate ? (
+          <p className="text-sm text-red-400">{errors.releaseDate}</p>
+        ) : null}
+      </div>
 
       <div className="space-y-1.5">
         <label

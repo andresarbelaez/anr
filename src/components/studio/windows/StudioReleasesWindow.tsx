@@ -7,16 +7,18 @@ import {
   useRef,
   useState,
 } from "react";
-import { Music, Calendar, Plus } from "lucide-react";
+import { Music, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Release } from "@/lib/supabase/types";
 import { S } from "@/components/studio/ui/s";
+import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
 import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
 import { StudioReleaseDetailPanel } from "@/components/studio/windows/StudioReleaseDetailPanel";
-import { StudioNewReleaseModal } from "@/components/studio/StudioNewReleaseModal";
+import { StudioNewReleasePanel } from "@/components/studio/StudioNewReleasePanel";
 
 type StackEntry =
   | { type: "list" }
+  | { type: "new" }
   | { type: "detail"; releaseId: string };
 
 function initialStack(initialReleaseId?: string | null): {
@@ -117,7 +119,8 @@ export function StudioReleasesWindow({
 
   const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newReleaseModalOpen, setNewReleaseModalOpen] = useState(false);
+  const [newWizardKey, setNewWizardKey] = useState(0);
+  const [wizardBusy, setWizardBusy] = useState(false);
 
   const loadReleases = useCallback(async () => {
     const supabase = createClient();
@@ -150,22 +153,34 @@ export function StudioReleasesWindow({
     [current]
   );
 
+  /** From stack “new” screen: land on detail without leaving “new” in history. */
   const handleNewReleaseCreated = useCallback(
     async (releaseId: string) => {
       await loadReleases();
-      goToDetail(releaseId);
+      setFuture([]);
+      setDetailTitle(null);
+      setCurrent({ type: "detail", releaseId });
     },
-    [loadReleases, goToDetail]
+    [loadReleases]
   );
+
+  const goToNew = useCallback(() => {
+    setDetailTitle(null);
+    setPast((p) => [...p, current]);
+    setCurrent({ type: "new" });
+    setFuture([]);
+    setNewWizardKey((k) => k + 1);
+  }, [current]);
 
   const goBack = useCallback(() => {
     if (past.length === 0) return;
+    if (current.type === "new" && wizardBusy) return;
     const prev = past[past.length - 1];
     setFuture((f) => [current, ...f]);
     setCurrent(prev);
     setPast((p) => p.slice(0, -1));
     if (prev.type === "list") setDetailTitle(null);
-  }, [past, current]);
+  }, [past, current, wizardBusy]);
 
   const goForward = useCallback(() => {
     if (future.length === 0) return;
@@ -176,11 +191,17 @@ export function StudioReleasesWindow({
     if (next.type === "list") setDetailTitle(null);
   }, [future, current]);
 
-  const canBack = past.length > 0;
+  const canBack =
+    past.length > 0 && !(current.type === "new" && wizardBusy);
   const canForward = future.length > 0;
+
+  useEffect(() => {
+    if (current.type !== "new") setWizardBusy(false);
+  }, [current.type]);
 
   const chromeTitle = useMemo(() => {
     if (current.type === "list") return null;
+    if (current.type === "new") return "New release";
     return detailTitle ?? DETAIL_FALLBACK;
   }, [current.type, detailTitle]);
 
@@ -241,26 +262,7 @@ export function StudioReleasesWindow({
             >
               Releases
             </span>
-            <button
-              type="button"
-              onClick={() => setNewReleaseModalOpen(true)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                fontSize: 12,
-                fontWeight: 500,
-                color: S.accentText,
-                background: S.accent,
-                border: `1px solid ${S.accent}`,
-                borderRadius: 2,
-                padding: "5px 9px",
-                cursor: "pointer",
-              }}
-            >
-              <Plus size={10} strokeWidth={3} />
-              New
-            </button>
+            <StudioMicroappNewButton label="New release" onClick={goToNew} />
           </div>
 
           <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
@@ -312,23 +314,9 @@ export function StudioReleasesWindow({
                   Upload your first track and distribute it to Spotify, Apple
                   Music, and 150+ platforms.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setNewReleaseModalOpen(true)}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: S.accentText,
-                    background: S.accent,
-                    border: `1px solid ${S.accent}`,
-                    borderRadius: 2,
-                    padding: "6px 12px",
-                    cursor: "pointer",
-                    marginTop: 4,
-                  }}
-                >
-                  Create first release
-                </button>
+                <div style={{ marginTop: 4 }}>
+                  <StudioMicroappNewButton label="New release" onClick={goToNew} />
+                </div>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -343,6 +331,13 @@ export function StudioReleasesWindow({
             )}
           </div>
         </>
+      ) : current.type === "new" ? (
+        <StudioNewReleasePanel
+          wizardKey={newWizardKey}
+          onBusyChange={setWizardBusy}
+          onCancel={goBack}
+          onCreated={handleNewReleaseCreated}
+        />
       ) : (
         <StudioReleaseDetailPanel
           releaseId={current.releaseId}
@@ -350,12 +345,6 @@ export function StudioReleasesWindow({
           onLoadedMeta={onReleaseMeta}
         />
       )}
-
-      <StudioNewReleaseModal
-        open={newReleaseModalOpen}
-        onClose={() => setNewReleaseModalOpen(false)}
-        onCreated={handleNewReleaseCreated}
-      />
     </div>
   );
 }

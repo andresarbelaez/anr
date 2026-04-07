@@ -21,8 +21,10 @@ export type ButtonVariant =
   | "outlineWarm"
   /** Subtle warm border — studio Library play / version label chip. */
   | "outlineSoft"
-  /** Filled warm accent — studio Library “New” / “Add a song”. */
+  /** Filled warm accent — studio Library row actions, etc. */
   | "studioAccent"
+  /** Dark studio toolbar — “New …” primary actions (white text, icon + label). */
+  | "studioMicroappNew"
   /** White circular control — catalog / embedded audio play. */
   | "circleLight"
   /** Studio viewport “Support us” chip (opens donate modal; fixed bottom-right in /studio). */
@@ -59,7 +61,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant !== "bare" &&
       variant !== "circleLight" &&
       variant !== "studioViewportSupport" &&
-      variant !== "studioViewportSignOut";
+      variant !== "studioViewportSignOut" &&
+      variant !== "studioMicroappNew";
 
     return (
       <button
@@ -89,6 +92,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
               "rounded-sm border border-[#ecddc8] bg-transparent text-[#8a6040] hover:border-[#d4b896] hover:bg-black/[0.03] hover:text-[#5a3518] focus-visible:ring-amber-900/25",
             studioAccent:
               "rounded-sm border border-[#a85c10] bg-[#a85c10] font-medium text-white hover:bg-[#924d0e] focus-visible:ring-amber-700/50",
+            studioMicroappNew:
+              "h-8 gap-1.5 rounded-sm border border-[#a85c10] bg-[#a85c10] px-3 text-xs font-semibold text-[#ffffff] shadow-sm hover:border-[#924d0e] hover:bg-[#924d0e] hover:text-[#ffffff] focus-visible:ring-amber-700/50 [&_svg]:shrink-0 [&_svg]:text-[#ffffff]",
             circleLight:
               "h-10 w-10 shrink-0 rounded-full border-0 bg-white p-0 text-black hover:bg-neutral-200 focus-visible:ring-white/50",
             studioViewportSupport:

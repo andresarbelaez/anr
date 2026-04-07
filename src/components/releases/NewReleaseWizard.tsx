@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
 const STEPS = ["Release Info", "Tracks", "Cover Art", "Review"] as const;
 
 export type NewReleaseWizardProps = {
-  /** Compact layout for studio modal (no page-level title). */
+  /** Compact layout for studio in-window flow (no page-level title). */
   embedded?: boolean;
   onComplete: (releaseId: string) => void | Promise<void>;
   /** When set, shows a Cancel control (e.g. close modal). */
@@ -203,37 +203,79 @@ export function NewReleaseWizard({
       )}
 
       <div className={embedded ? "mb-4" : "mt-6 mb-6"}>
-        <div className="flex flex-wrap gap-2">
-          {STEPS.map((label, i) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => i < step && setStep(i)}
-              disabled={i > step}
-              className="flex items-center gap-2"
-            >
-              <div
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition ${
-                  i <= step
-                    ? "bg-white text-black"
-                    : "bg-neutral-800 text-neutral-500"
-                }`}
+        {embedded ? (
+          <div className="overflow-x-auto pb-0.5">
+            <div className="flex w-max min-w-full flex-nowrap items-center">
+              {STEPS.map((label, i) => (
+                <Fragment key={label}>
+                  {i > 0 ? (
+                    <div
+                      className={`mx-1 h-px min-w-[6px] flex-1 max-sm:max-w-[20px] ${
+                        i <= step ? "bg-neutral-600" : "bg-neutral-800"
+                      }`}
+                      aria-hidden
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => i < step && setStep(i)}
+                    disabled={i > step}
+                    className="flex shrink-0 items-center gap-1.5"
+                  >
+                    <div
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition ${
+                        i <= step
+                          ? "bg-white text-black"
+                          : "bg-neutral-800 text-neutral-500"
+                      }`}
+                    >
+                      {i + 1}
+                    </div>
+                    <span
+                      className={`whitespace-nowrap text-[11px] font-medium leading-tight sm:text-xs ${
+                        i <= step ? "text-white" : "text-neutral-500"
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </button>
+                </Fragment>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {STEPS.map((label, i) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => i < step && setStep(i)}
+                disabled={i > step}
+                className="flex items-center gap-2"
               >
-                {i + 1}
-              </div>
-              <span
-                className={`text-sm ${
-                  i <= step ? "text-white" : "text-neutral-500"
-                }`}
-              >
-                {label}
-              </span>
-              {i < STEPS.length - 1 && (
-                <div className="mx-2 hidden h-px w-8 bg-neutral-800 sm:block" />
-              )}
-            </button>
-          ))}
-        </div>
+                <div
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition ${
+                    i <= step
+                      ? "bg-white text-black"
+                      : "bg-neutral-800 text-neutral-500"
+                  }`}
+                >
+                  {i + 1}
+                </div>
+                <span
+                  className={`text-sm ${
+                    i <= step ? "text-white" : "text-neutral-500"
+                  }`}
+                >
+                  {label}
+                </span>
+                {i < STEPS.length - 1 && (
+                  <div className="mx-2 hidden h-px w-8 bg-neutral-800 sm:block" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="max-w-2xl">

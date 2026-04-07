@@ -15,6 +15,7 @@ import type {
 import { formatAudioTime } from "@/lib/utils/format-audio-time";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
+import { S } from "@/components/studio/ui/s";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Pause, Play, Trash2 } from "lucide-react";
@@ -363,14 +364,24 @@ export function ListenFeedbackClient({ token }: { token: string }) {
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-700 border-t-white" />
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-[#ecddc8] border-t-[#a85c10]"
+          aria-hidden
+        />
       </div>
     );
   }
 
   if (loadError && !session) {
     return (
-      <p className="rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm text-red-200">
+      <p
+        className="rounded-lg border px-4 py-3 text-sm"
+        style={{
+          background: S.errorBg,
+          borderColor: S.error,
+          color: S.error,
+        }}
+      >
         {loadError}
       </p>
     );
@@ -381,10 +392,15 @@ export function ListenFeedbackClient({ token }: { token: string }) {
   return (
     <div className="mx-auto max-w-xl space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-white">
+        <h1
+          className="text-xl font-semibold tracking-tight"
+          style={{ color: S.textPrimary }}
+        >
           {session.songTitle}
         </h1>
-        <p className="text-sm text-neutral-500">{session.versionLabel}</p>
+        <p className="text-sm" style={{ color: S.textMuted }}>
+          {session.versionLabel}
+        </p>
       </div>
 
       <audio
@@ -400,10 +416,11 @@ export function ListenFeedbackClient({ token }: { token: string }) {
 
       <div className="flex flex-col gap-0">
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
+            variant="circleLight"
             onClick={togglePlay}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200"
+            className="!h-12 !w-12 shrink-0"
             aria-label={playing ? "Pause" : "Play"}
           >
             {playing ? (
@@ -421,20 +438,22 @@ export function ListenFeedbackClient({ token }: { token: string }) {
                 strokeWidth={0}
               />
             )}
-          </button>
+          </Button>
           <div
             className={cn(
-              "relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-neutral-800",
+              "relative h-2 min-w-0 flex-1 overflow-hidden rounded-full",
               (!Number.isFinite(duration) || duration <= 0) && "opacity-50"
             )}
+            style={{ background: S.borderFaint }}
           >
             <div
-              className="pointer-events-none absolute left-0 top-0 h-full bg-white"
+              className="pointer-events-none absolute left-0 top-0 h-full rounded-full"
               style={{
                 width:
                   duration > 0
                     ? `${Math.min(100, Math.max(0, (current / duration) * 100))}%`
                     : "0%",
+                background: S.accent,
               }}
             />
             <input
@@ -452,7 +471,10 @@ export function ListenFeedbackClient({ token }: { token: string }) {
         </div>
         <div className="flex items-center gap-3">
           <div className="w-12 shrink-0" aria-hidden />
-          <div className="flex min-w-0 flex-1 justify-between text-xs tabular-nums text-neutral-500">
+          <div
+            className="flex min-w-0 flex-1 justify-between text-xs tabular-nums"
+            style={{ color: S.textMuted }}
+          >
             <span className="text-left">{formatAudioTime(current)}</span>
             <span className="text-right">{formatAudioTime(duration)}</span>
           </div>
@@ -460,14 +482,25 @@ export function ListenFeedbackClient({ token }: { token: string }) {
       </div>
 
       {loadError && (
-        <p className="text-sm text-red-300">{loadError}</p>
+        <p className="text-sm" style={{ color: S.error }}>
+          {loadError}
+        </p>
       )}
 
-      <section className="space-y-4 border-t border-neutral-800 pt-6">
-        <h2 className="text-sm font-medium text-white">Leave feedback</h2>
+      <section
+        className="space-y-4 border-t pt-6"
+        style={{ borderColor: S.border }}
+      >
+        <h2
+          className="text-sm font-semibold tracking-wide uppercase"
+          style={{ color: S.textSecondary, letterSpacing: "0.04em" }}
+        >
+          Leave feedback
+        </h2>
         <Input
           id={`${idPrefix}-name`}
           label="Your name (optional)"
+          appearance="studio"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="e.g. Mom"
@@ -475,6 +508,7 @@ export function ListenFeedbackClient({ token }: { token: string }) {
         <Textarea
           id={`${idPrefix}-note`}
           label={`Note at ${formatAudioTime(current)}`}
+          appearance="studio"
           value={newBody}
           onChange={(e) => setNewBody(e.target.value)}
           placeholder="What are you hearing that could be improved?"
@@ -482,7 +516,9 @@ export function ListenFeedbackClient({ token }: { token: string }) {
         />
         <Button
           type="button"
+          variant="studioAccent"
           loading={posting}
+          className="!rounded-sm !font-semibold"
           onClick={() => void postTopLevel()}
           disabled={!newBody.trim()}
         >
@@ -491,31 +527,48 @@ export function ListenFeedbackClient({ token }: { token: string }) {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium text-white">Comments</h2>
+        <h2
+          className="text-sm font-semibold tracking-wide uppercase"
+          style={{ color: S.textSecondary, letterSpacing: "0.04em" }}
+        >
+          Comments
+        </h2>
         {commentsError ? (
-          <p className="text-sm text-amber-200/90">{commentsError}</p>
+          <p className="text-sm" style={{ color: S.warning }}>
+            {commentsError}
+          </p>
         ) : commentsLoading && session.comments.length === 0 ? (
-          <p className="text-sm text-neutral-500">Loading comments…</p>
+          <p className="text-sm" style={{ color: S.textMuted }}>
+            Loading comments…
+          </p>
         ) : session.comments.length === 0 ? (
-          <p className="text-sm text-neutral-500">No comments yet.</p>
+          <p className="text-sm" style={{ color: S.textMuted }}>
+            No comments yet.
+          </p>
         ) : (
           <ul className="space-y-4">
             {session.comments.map((c) => (
               <li
                 key={c.id}
-                className="rounded-lg border border-neutral-800 bg-neutral-950/80 p-4"
+                className="rounded-lg border p-4"
+                style={{
+                  background: S.surface,
+                  borderColor: S.border,
+                }}
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <button
                     type="button"
-                    className="text-left text-sm font-medium text-pink-400 hover:underline"
+                    className="text-left text-sm font-semibold hover:underline"
+                    style={{ color: S.accent }}
                     onClick={() => seek(c.secondsIntoTrack)}
                   >
                     {formatAudioTime(c.secondsIntoTrack)}
                   </button>
                   {isPostedByThisBrowser(token, c.id) && (
-                    <button
+                    <Button
                       type="button"
+                      variant="bare"
                       onClick={() =>
                         void deleteOwn(c.id).catch((err) =>
                           setLoadError(
@@ -523,28 +576,39 @@ export function ListenFeedbackClient({ token }: { token: string }) {
                           )
                         )
                       }
-                      className="rounded p-1 text-neutral-500 hover:bg-neutral-800 hover:text-red-300"
+                      className="rounded p-1 text-[#8a6040] hover:bg-black/[0.04] hover:text-[#a82820]"
                       aria-label="Delete my comment"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </Button>
                   )}
                 </div>
-                <p className="mt-1 text-xs text-neutral-500">
+                <p className="mt-1 text-xs" style={{ color: S.textMuted }}>
                   {c.displayName ?? "Anonymous"}
                 </p>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-200">
+                <p
+                  className="mt-2 whitespace-pre-wrap text-sm leading-relaxed"
+                  style={{ color: S.textPrimary }}
+                >
                   {c.body}
                 </p>
 
                 {c.replies.length > 0 && (
-                  <ul className="mt-3 space-y-2 border-l border-neutral-800 pl-3">
+                  <ul
+                    className="mt-3 space-y-2 border-l pl-3"
+                    style={{ borderColor: S.borderFaint }}
+                  >
                     {c.replies.map((r) => (
                       <li key={r.id}>
-                        <p className="text-xs text-neutral-500">
+                        <p className="text-xs" style={{ color: S.textMuted }}>
                           {r.displayName ?? "Anonymous"}
                         </p>
-                        <p className="text-sm text-neutral-300">{r.body}</p>
+                        <p
+                          className="text-sm leading-relaxed"
+                          style={{ color: S.textSecondary }}
+                        >
+                          {r.body}
+                        </p>
                         {isPostedByThisBrowser(token, r.id) && (
                           <button
                             type="button"
@@ -557,7 +621,8 @@ export function ListenFeedbackClient({ token }: { token: string }) {
                                 )
                               )
                             }
-                            className="mt-1 text-xs text-neutral-600 hover:text-red-300"
+                            className="mt-1 text-xs hover:underline"
+                            style={{ color: S.textFaint }}
                           >
                             Delete my reply
                           </button>
@@ -573,15 +638,18 @@ export function ListenFeedbackClient({ token }: { token: string }) {
                       <Textarea
                         id={`${idPrefix}-reply-${c.id}`}
                         label="Reply"
+                        appearance="studio"
                         value={replyBody}
                         onChange={(e) => setReplyBody(e.target.value)}
                         rows={2}
                       />
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
+                          variant="studioAccent"
                           size="sm"
                           loading={posting}
+                          className="!rounded-sm"
                           onClick={() => void postReply(c.id)}
                           disabled={!replyBody.trim()}
                         >
@@ -589,8 +657,9 @@ export function ListenFeedbackClient({ token }: { token: string }) {
                         </Button>
                         <Button
                           type="button"
+                          variant="outlineSoft"
                           size="sm"
-                          variant="ghost"
+                          className="!rounded-sm !border-[#d4b896] !text-xs font-medium text-[#5a3518]"
                           onClick={() => {
                             setReplyTo(null);
                             setReplyBody("");
@@ -603,8 +672,9 @@ export function ListenFeedbackClient({ token }: { token: string }) {
                   ) : (
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outlineSoft"
                       size="sm"
+                      className="!rounded-sm !border-[#d4b896] !text-xs font-medium text-[#5a3518]"
                       onClick={() => setReplyTo(c.id)}
                     >
                       Reply
@@ -617,8 +687,21 @@ export function ListenFeedbackClient({ token }: { token: string }) {
         )}
       </section>
 
-      <p className="text-center text-xs text-neutral-600">
-        Powered by sidestage.fm — free music distribution for independent artists.
+      <p
+        className="text-center text-[11px] leading-relaxed"
+        style={{ color: S.textFaint }}
+      >
+        Powered by{" "}
+        <a
+          href="https://sidestage.fm"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium underline decoration-[#c4a88c] underline-offset-2 transition hover:decoration-[#a85c10]"
+          style={{ color: S.accent }}
+        >
+          sidestage.fm
+        </a>{" "}
+        — free tools for musical artists.
       </p>
     </div>
   );

@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   applyCalendarOccurrenceDelete,
   applyCalendarOccurrenceSave,
   resolveCalendarMasterEvent,
 } from "@/lib/calendar/calendar-event-mutations";
+import type { StudioWindowChromeApi } from "@/components/studio/studio-window-chrome";
+import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
 import { cn } from "@/lib/utils/cn";
 import type {
   CalendarEvent,
@@ -28,6 +30,11 @@ import { EventDetailModal, formToEventPayload as detailFormToPayload } from "./E
 
 type CalView = "month" | "week";
 
+type CalStackEntry =
+  | { type: "grid" }
+  | { type: "new"; prefillDate?: string }
+  | { type: "detail"; occurrence: CalendarOccurrence };
+
 const MONTH_NAMES = [
   "January",
   "February",
@@ -43,7 +50,14 @@ const MONTH_NAMES = [
   "December",
 ];
 
-export function CalendarClient() {
+export function CalendarClient({
+  studioChrome = null,
+}: {
+  /** When set, creation/detail use in-window stack + title-bar nav instead of modals. */
+  studioChrome?: StudioWindowChromeApi | null;
+} = {}) {
+  const stackMode = !!studioChrome;
+
   const [view, setView] = useState<CalView>("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -53,9 +67,19 @@ export function CalendarClient() {
   const [loading, setLoading] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [prefillDate, setPrefillDate] = useState<string | undefined>();
+  const [prefillDateModal, setPrefillDateModal] = useState<string | undefined>();
+  const [detailOccurrence, setDetailOccurrence] =
+    useState<CalendarOccurrence | null>(null);
 
-  const [detailOccurrence, setDetailOccurrence] = useState<CalendarOccurrence | null>(null);
+  const [past, setPast] = useState<CalStackEntry[]>([]);
+  const [currentStack, setCurrentStack] = useState<CalStackEntry>({
+    type: "grid",
+  });
+  const [future, setFuture] = useState<CalStackEntry[]>([]);
+  const [newPanelKey, setNewPanelKey] = useState(0);
+  const detailChromeBackRef = useRef<() => boolean>(() => false);
+  const stackRef = useRef({ past, currentStack });
+  stackRef.current = { past, currentStack };
 
   const loadData = useCallback(async (rangeStart: Date, rangeEnd: Date) => {
     setLoading(true);
@@ -159,23 +183,123 @@ export function CalendarClient() {
           return `${MONTH_NAMES[ws.getMonth()]} ${ws.getDate()} – ${MONTH_NAMES[we.getMonth()]} ${we.getDate()}, ${ws.getFullYear()}`;
         })();
 
-  function openCreate(dateStr?: string) {
-    setPrefillDate(dateStr ?? toDateStr(new Date()));
-    setCreateOpen(true);
-  }
+  const openCreate = useCallback(
+    (dateStr?: string) => {
+      const d = dateStr ?? toDateStr(new Date());
+      if (stackMode) {
+        setPast((p) => [...p, currentStack]);
+        setCurrentStack({ type: "new", prefillDate: d });
+        setFuture([]);
+        setNewPanelKey((k) => k + 1);
+      } else {
+        setPrefillDateModal(d);
+        setCreateOpen(true);
+      }
+    },
+    [stackMode, currentStack]
+  );
 
-  function openDetail(occ: CalendarOccurrence) {
-    setDetailOccurrence(occ);
-  }
+  const openDetail = useCallback(
+    (occ: CalendarOccurrence) => {
+      if (stackMode) {
+        setPast((p) => [...p, currentStack]);
+        setCurrentStack({ type: "detail", occurrence: occ });
+        setFuture([]);
+      } else {
+        setDetailOccurrence(occ);
+      }
+    },
+    [stackMode, currentStack]
+  );
 
-  async function handleDetailSaveInternal(form: EventFormData, scope: RecurringEditScope) {
+  const goBack = useCallback(() => {
+    if (!stackMode || past.length === 0) return;
+    if (
+      currentStack.type === "detail" &&
+      detailChromeBackRef.current()
+    ) {
+      return;
+    }
+    const prev = past[past.length - 1];
+    setFuture((f) => [currentStack, ...f]);
+    setCurrentStack(prev);
+    setPast((p) => p.slice(0, -1));
+  }, [stackMode, past, currentStack]);
+
+  const goForward = useCallback(() => {
+    if (!stackMode || future.length === 0) return;
+    const next = future[0];
+    setPast((p) => [...p, currentStack]);
+    setCurrentStack(next);
+    setFuture((f) => f.slice(1));
+  }, [stackMode, future, currentStack]);
+
+  useEffect(() => {
+    if (!stackMode || currentStack.type === "detail") return;
+    detailChromeBackRef.current = () => false;
+  }, [stackMode, currentStack.type]);
+
+  const canBack = stackMode && past.length > 0;
+  const canForward = stackMode && future.length > 0;
+
+  const chromeTitle = useMemo(() => {
+    if (!stackMode) return null;
+    if (currentStack.type === "grid") return null;
+    if (currentStack.type === "new") return "New event";
+    const t = currentStack.occurrence.event.title.trim();
+    if (t.length <= 28) return t;
+    return `${t.slice(0, 26)}…`;
+  }, [stackMode, currentStack]);
+
+  useEffect(() => {
+    if (!studioChrome) return;
+    studioChrome.setTitle(chromeTitle);
+  }, [studioChrome, chromeTitle]);
+
+  useEffect(() => {
+    if (!studioChrome) return;
+    studioChrome.setNav({
+      canBack,
+      canForward,
+      goBack,
+      goForward,
+    });
+  }, [studioChrome, canBack, canForward, goBack, goForward]);
+
+  const closeDetailModal = useCallback(() => {
+    setDetailOccurrence(null);
+  }, []);
+
+  const popStackToGrid = useCallback(() => {
+    setFuture([]);
+    const { past: p } = stackRef.current;
+    if (p.length === 0) {
+      setCurrentStack({ type: "grid" });
+      return;
+    }
+    const prev = p[p.length - 1];
+    setPast(p.slice(0, -1));
+    setCurrentStack(prev);
+  }, []);
+
+  async function handleDetailSaveInternal(
+    form: EventFormData,
+    scope: RecurringEditScope
+  ) {
     const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const occ = detailOccurrence;
+    const occFromStack = () => {
+      const c = stackRef.current.currentStack;
+      return c.type === "detail" ? c.occurrence : null;
+    };
+
+    const occ: CalendarOccurrence | null = stackMode
+      ? occFromStack()
+      : detailOccurrence;
     if (!occ) return;
 
     const payload = detailFormToPayload(form, user.id);
@@ -188,12 +312,23 @@ export function CalendarClient() {
       scope,
     });
 
-    setDetailOccurrence(null);
+    if (stackMode) {
+      popStackToGrid();
+    } else {
+      setDetailOccurrence(null);
+    }
     if (!error) void loadData(rangeStart, rangeEnd);
   }
 
   async function handleDetailDelete(scope: RecurringEditScope) {
-    const occ = detailOccurrence;
+    const occFromStack = () => {
+      const c = stackRef.current.currentStack;
+      return c.type === "detail" ? c.occurrence : null;
+    };
+
+    const occ: CalendarOccurrence | null = stackMode
+      ? occFromStack()
+      : detailOccurrence;
     if (!occ) return;
     const supabase = createClient();
     const masterEvent = resolveCalendarMasterEvent(events, occ);
@@ -204,112 +339,192 @@ export function CalendarClient() {
       scope,
     });
 
-    setDetailOccurrence(null);
+    if (stackMode) {
+      popStackToGrid();
+    } else {
+      setDetailOccurrence(null);
+    }
     if (!error) void loadData(rangeStart, rangeEnd);
   }
 
+  const onDetailClose = useCallback(() => {
+    if (stackMode) {
+      goBack();
+    } else {
+      closeDetailModal();
+    }
+  }, [stackMode, goBack, closeDetailModal]);
+
+  const showGridResolved = !stackMode || currentStack.type === "grid";
+
+  const rootClass = stackMode
+    ? "relative flex h-full min-h-0 flex-1 flex-col"
+    : "relative flex h-[calc(100vh-4rem)] flex-col";
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setCurrentDate(new Date())}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:bg-neutral-800"
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-white"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate(1)}
-            className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-white"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <span className="ml-1 text-sm font-semibold text-white">{headerLabel}</span>
-          {loading && <span className="text-xs text-neutral-500">loading…</span>}
-        </div>
-
-        <div className="flex items-center gap-1 rounded-lg border border-neutral-800 p-0.5">
-          {(["month", "week"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setView(v)}
-              className={cn(
-                "rounded px-3 py-1 text-xs font-medium transition",
-                view === v
-                  ? "bg-neutral-700 text-white"
-                  : "text-neutral-400 hover:text-white"
+    <div className={rootClass}>
+      {showGridResolved ? (
+        <>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-neutral-800 px-4 py-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 rounded-lg border border-neutral-800 p-0.5">
+                {(["month", "week"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setView(v)}
+                    className={cn(
+                      "rounded px-3 py-1 text-xs font-medium transition",
+                      view === v
+                        ? "bg-neutral-700 text-white"
+                        : "text-neutral-400 hover:text-white"
+                    )}
+                  >
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentDate(new Date())}
+                className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:bg-neutral-800"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-white"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(1)}
+                className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-white"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <span className="ml-1 text-sm font-semibold text-white">
+                {headerLabel}
+              </span>
+              {loading && (
+                <span className="text-xs text-neutral-500">loading…</span>
               )}
-            >
-              {v.charAt(0).toUpperCase() + v.slice(1)}
-            </button>
-          ))}
+            </div>
+
+            <StudioMicroappNewButton
+              label="New event"
+              onClick={() => openCreate()}
+              className="shrink-0"
+            />
+          </div>
+
+          <div className="min-h-0 flex-1">
+            {view === "month" ? (
+              <MonthView
+                year={currentDate.getFullYear()}
+                month={currentDate.getMonth()}
+                occurrences={occurrences}
+                onDayClick={(dateStr) => openCreate(dateStr)}
+                onEventClick={openDetail}
+              />
+            ) : (
+              <WeekView
+                weekStart={weekSunday(currentDate)}
+                occurrences={occurrences}
+                onSlotClick={(dateStr) => openCreate(dateStr)}
+                onEventClick={openDetail}
+              />
+            )}
+          </div>
+        </>
+      ) : null}
+
+      {stackMode && currentStack.type === "new" ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <EventModal
+            key={newPanelKey}
+            open
+            presentation="panel"
+            prefillDate={currentStack.prefillDate}
+            onSave={async (form) => {
+              const supabase = createClient();
+              const {
+                data: { user },
+              } = await supabase.auth.getUser();
+              if (!user) return;
+              await supabase
+                .from("calendar_events")
+                .insert(formToEventPayload(form, user.id));
+              setPast([]);
+              setFuture([]);
+              setCurrentStack({ type: "grid" });
+              void loadData(rangeStart, rangeEnd);
+            }}
+            onClose={goBack}
+          />
         </div>
-      </div>
+      ) : null}
 
-      {view === "month" ? (
-        <MonthView
-          year={currentDate.getFullYear()}
-          month={currentDate.getMonth()}
-          occurrences={occurrences}
-          onDayClick={(dateStr) => openCreate(dateStr)}
-          onEventClick={openDetail}
-        />
-      ) : (
-        <WeekView
-          weekStart={weekSunday(currentDate)}
-          occurrences={occurrences}
-          onSlotClick={(dateStr) => openCreate(dateStr)}
-          onEventClick={openDetail}
-        />
-      )}
+      {stackMode && currentStack.type === "detail" ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <EventDetailModal
+            open
+            presentation="panel"
+            chromeBackRef={detailChromeBackRef}
+            occurrence={currentStack.occurrence}
+            releaseInfo={
+              currentStack.occurrence.isReleaseDate
+                ? releases.find(
+                    (r) => r.id === currentStack.occurrence.masterId
+                  ) ?? undefined
+                : undefined
+            }
+            onSave={(form, scope) => void handleDetailSaveInternal(form, scope)}
+            onDelete={(scope) => void handleDetailDelete(scope)}
+            onClose={onDetailClose}
+          />
+        </div>
+      ) : null}
 
-      <button
-        type="button"
-        onClick={() => openCreate()}
-        className="absolute bottom-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-black shadow-lg transition hover:opacity-90"
-        title="New event"
-      >
-        <CalendarDays className="h-5 w-5" />
-      </button>
+      {!stackMode ? (
+        <>
+          <EventModal
+            open={createOpen}
+            presentation="modal"
+            prefillDate={prefillDateModal}
+            onSave={async (form) => {
+              const supabase = createClient();
+              const {
+                data: { user },
+              } = await supabase.auth.getUser();
+              if (!user) return;
+              await supabase
+                .from("calendar_events")
+                .insert(formToEventPayload(form, user.id));
+              setCreateOpen(false);
+              void loadData(rangeStart, rangeEnd);
+            }}
+            onClose={() => setCreateOpen(false)}
+          />
 
-      <EventModal
-        open={createOpen}
-        prefillDate={prefillDate}
-        onSave={async (form) => {
-          const supabase = createClient();
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (!user) return;
-          await supabase.from("calendar_events").insert(formToEventPayload(form, user.id));
-          setCreateOpen(false);
-          void loadData(rangeStart, rangeEnd);
-        }}
-        onClose={() => setCreateOpen(false)}
-      />
-
-      <EventDetailModal
-        open={!!detailOccurrence}
-        occurrence={detailOccurrence}
-        releaseInfo={
-          detailOccurrence?.isReleaseDate
-            ? releases.find((r) => r.id === detailOccurrence.masterId) ?? undefined
-            : undefined
-        }
-        onSave={(form, scope) => void handleDetailSaveInternal(form, scope)}
-        onDelete={(scope) => void handleDetailDelete(scope)}
-        onClose={() => setDetailOccurrence(null)}
-      />
+          <EventDetailModal
+            open={!!detailOccurrence}
+            presentation="modal"
+            occurrence={detailOccurrence}
+            releaseInfo={
+              detailOccurrence?.isReleaseDate
+                ? releases.find((r) => r.id === detailOccurrence.masterId) ??
+                  undefined
+                : undefined
+            }
+            onSave={(form, scope) => void handleDetailSaveInternal(form, scope)}
+            onDelete={(scope) => void handleDetailDelete(scope)}
+            onClose={closeDetailModal}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

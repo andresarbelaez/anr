@@ -75,7 +75,9 @@ async function executeReadToolInner(
     case "list_crm_contacts": {
       const { data, error } = await supabase
         .from("crm_contacts")
-        .select("id, name, email, role, status, updated_at")
+        .select(
+          "id, name, email, instagram, tiktok, website, roles, status, updated_at"
+        )
         .order("name");
       if (error) return JSON.stringify({ error: error.message });
       return JSON.stringify({ contacts: data ?? [] });

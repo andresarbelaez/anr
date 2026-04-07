@@ -8,6 +8,7 @@ import {
 import type { CalendarEvent, RecurringEditScope } from "@/lib/supabase/types";
 import { CATALOG_MP3_BUCKET } from "@/lib/utils/catalog-mp3";
 import { buildGuestListenUrl } from "@/lib/utils/public-app-url";
+import { parseCrmRolesFromUnknown } from "@/lib/crm/crm-roles";
 import {
   asUuid,
   copyAgentAttachmentToCatalogMp3,
@@ -370,12 +371,15 @@ export async function applyApprovedMutation(
             : typeof args.tiktok === "string"
               ? args.tiktok.trim() || null
               : null,
-        role:
-          args.role === null || args.role === undefined
+        website:
+          args.website === null || args.website === undefined
             ? null
-            : typeof args.role === "string"
-              ? args.role.trim() || null
+            : typeof args.website === "string"
+              ? args.website.trim() || null
               : null,
+        roles: parseCrmRolesFromUnknown(
+          args.roles !== undefined ? args.roles : args.role
+        ),
         notes:
           args.notes === null || args.notes === undefined
             ? null
@@ -414,12 +418,17 @@ export async function applyApprovedMutation(
         "email",
         "instagram",
         "tiktok",
-        "role",
+        "website",
         "notes",
         "status",
         "last_contacted_at",
       ] as const) {
         if (args[k] !== undefined) patch[k] = args[k];
+      }
+      if (args.roles !== undefined) {
+        patch.roles = parseCrmRolesFromUnknown(args.roles);
+      } else if (args.role !== undefined) {
+        patch.roles = parseCrmRolesFromUnknown(args.role);
       }
       if (Object.keys(patch).length === 0)
         return { ok: false, message: "No fields to update" };

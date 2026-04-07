@@ -1,4 +1,5 @@
 import { ListenFeedbackClient } from "@/components/feedback/ListenFeedbackClient";
+import { S } from "@/components/studio/ui/s";
 
 export default async function ListenPage({
   params,
@@ -8,7 +9,10 @@ export default async function ListenPage({
   const { token } = await params;
 
   return (
-    <div className="min-h-screen bg-black px-4 py-10 text-white">
+    <div
+      className="min-h-screen px-4 py-10 antialiased"
+      style={{ background: S.bg, color: S.textPrimary }}
+    >
       <ListenFeedbackClient token={token} />
     </div>
   );

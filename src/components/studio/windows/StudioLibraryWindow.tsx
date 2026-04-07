@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Play, Plus, ListMusic, Download, Upload, Trash2 } from "lucide-react";
+import { Play, ListMusic, Download, Upload, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { CatalogSong, CatalogSongVersion, Release } from "@/lib/supabase/types";
 import { S } from "@/components/studio/ui/s";
@@ -19,6 +19,7 @@ import {
 import { CATALOG_MP3_BUCKET } from "@/lib/utils/catalog-mp3";
 import { CatalogVersionDeleteModal } from "@/components/catalog/CatalogVersionDeleteModal";
 import { StudioNewCatalogSongModal } from "@/components/studio/StudioNewCatalogSongModal";
+import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
 import { Button } from "@/components/ui/button";
 
 type SongRow = CatalogSong & { releaseTitle: string | null };
@@ -461,16 +462,10 @@ export function StudioLibraryWindow({
                 onFile={handleImport}
                 disabled={importing}
               />
-              <Button
-                type="button"
-                variant="studioAccent"
-                size="xs"
+              <StudioMicroappNewButton
+                label="New song"
                 onClick={() => setNewSongModalOpen(true)}
-                className="!gap-1.5 !rounded-sm !font-medium"
-              >
-                <Plus size={10} strokeWidth={3} />
-                New
-              </Button>
+              />
             </div>
           </div>
 
@@ -519,15 +514,12 @@ export function StudioLibraryWindow({
                   Track demos, alternates, and references. Link to a release
                   when ready.
                 </p>
-                <Button
-                  type="button"
-                  variant="studioAccent"
-                  size="sm"
-                  onClick={() => setNewSongModalOpen(true)}
-                  className="!mt-1 !rounded-sm !font-medium"
-                >
-                  Add a song
-                </Button>
+                <div style={{ marginTop: 4 }}>
+                  <StudioMicroappNewButton
+                    label="New song"
+                    onClick={() => setNewSongModalOpen(true)}
+                  />
+                </div>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

@@ -40,7 +40,7 @@ export const AGENT_READ_TOOLS = [
     function: {
       name: "list_crm_contacts",
       description:
-        "List CRM contacts (id, name, email, role, status). Call this before creating or updating a contact to see existing rows and correct contact_id values. Use create_crm_contact for new people; update_crm_contact only when editing an existing id.",
+        "List CRM contacts (id, name, email, roles, status, …). Call this before creating or updating a contact to see existing rows and correct contact_id values. Use create_crm_contact for new people; update_crm_contact only when editing an existing id.",
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
@@ -361,7 +361,19 @@ export const AGENT_MUTATION_TOOLS = [
           email: { type: "string" },
           instagram: { type: "string" },
           tiktok: { type: "string" },
-          role: { type: "string" },
+          website: {
+            type: "string",
+            description: "Website or other URL (optional)",
+          },
+          roles: {
+            type: "array",
+            items: { type: "string" },
+            description: "Contact roles (zero or more), e.g. Producer, Artist",
+          },
+          role: {
+            type: "string",
+            description: "Legacy single role; prefer `roles` when possible",
+          },
           notes: { type: "string" },
           last_contacted_at: {
             type: "string",
@@ -391,7 +403,19 @@ export const AGENT_MUTATION_TOOLS = [
           email: { type: "string" },
           instagram: { type: "string" },
           tiktok: { type: "string" },
-          role: { type: "string" },
+          website: {
+            type: "string",
+            description: "Website or other URL",
+          },
+          roles: {
+            type: "array",
+            items: { type: "string" },
+            description: "Replace all roles when set",
+          },
+          role: {
+            type: "string",
+            description: "Legacy single role; prefer `roles` when possible",
+          },
           notes: { type: "string" },
           last_contacted_at: {
             type: "string",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type MutableRefObject, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Disc3,
@@ -113,20 +113,22 @@ function DetailModalHeader({
   title,
   onBack,
   onClose,
+  showCloseButton = true,
 }: {
   showBack?: boolean;
   title: string;
   onBack?: () => void;
   onClose: () => void;
+  showCloseButton?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
-      <div className="flex items-center gap-2">
+    <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-5 py-4">
+      <div className="flex min-w-0 items-center gap-2">
         {showBack && (
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center gap-1 text-sm text-neutral-400 transition hover:text-white"
+            className="flex shrink-0 items-center gap-1 text-sm text-neutral-400 transition hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -136,16 +138,20 @@ function DetailModalHeader({
           <h2 className="text-sm font-semibold text-white">{title}</h2>
         )}
         {showBack && (
-          <span className="text-sm font-semibold text-white">{title}</span>
+          <span className="min-w-0 truncate text-sm font-semibold text-white">
+            {title}
+          </span>
         )}
       </div>
-      <button
-        type="button"
-        onClick={onClose}
-        className="text-neutral-500 hover:text-white"
-      >
-        <X className="h-4 w-4" />
-      </button>
+      {showCloseButton ? (
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 text-neutral-500 hover:text-white"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -162,6 +168,10 @@ interface Props {
   onSave: (form: EventFormData, scope: RecurringEditScope) => void;
   onDelete: (scope: RecurringEditScope) => void;
   onClose: () => void;
+  /** `panel` = in-studio stack (no viewport overlay). */
+  presentation?: "modal" | "panel";
+  /** When `presentation` is `panel`, parent window back consults this first (nested scope/edit → view). */
+  chromeBackRef?: MutableRefObject<() => boolean>;
 }
 
 export function EventDetailModal({
@@ -171,6 +181,8 @@ export function EventDetailModal({
   onSave,
   onDelete,
   onClose,
+  presentation = "modal",
+  chromeBackRef,
 }: Props) {
   const [state, setState] = useState<ModalState>("view");
   const [scopeTarget, setScopeTarget] = useState<ScopeTarget>("edit");
@@ -190,6 +202,26 @@ export function EventDetailModal({
   }, [state, occurrence]);
 
   if (!open || !occurrence) return null;
+
+  const isPanel = presentation === "panel";
+  if (chromeBackRef) {
+    if (isPanel) {
+      chromeBackRef.current = () => {
+        if (state === "view") return false;
+        if (state === "scope") {
+          setState("view");
+          return true;
+        }
+        if (state === "edit") {
+          setState("view");
+          return true;
+        }
+        return false;
+      };
+    } else {
+      chromeBackRef.current = () => false;
+    }
+  }
 
   const event = occurrence.event;
   const isRelease = occurrence.isReleaseDate;
@@ -254,6 +286,163 @@ export function EventDetailModal({
       ? EDITABLE_STATUSES.includes(releaseInfo.status)
       : false;
 
+    const viewBody = (
+      <>
+        <div
+          className={cn(
+            "h-1 w-full shrink-0",
+            colorStyle.dot,
+            isPanel ? "" : "rounded-t-2xl"
+          )}
+        />
+
+        <div className="p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                {isRelease && (
+                  <Disc3 className="h-4 w-4 shrink-0 text-neutral-400" />
+                )}
+                {!isRelease && (
+                  <span
+                    className={cn(
+                      "h-2.5 w-2.5 shrink-0 rounded-full",
+                      colorStyle.dot
+                    )}
+                  />
+                )}
+                <h2 className="truncate text-base font-semibold leading-snug text-white">
+                  {event.title}
+                </h2>
+              </div>
+              <p className="mt-1.5 text-sm text-neutral-400">
+                {fmtOccurrenceDate(occurrence)}
+              </p>
+              {isRecurring && event.recurrence && (
+                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
+                  <Repeat2 className="h-3 w-3" />
+                  {recurrenceSummary(event.recurrence)}
+                </p>
+              )}
+            </div>
+            {!isPanel ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-0.5 shrink-0 text-neutral-500 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+
+          {(event.description ||
+            event.location ||
+            event.link ||
+            isRelease) && (
+            <div className="mb-4 space-y-2 border-t border-neutral-800 pt-4">
+              {event.description && (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">
+                  {event.description}
+                </p>
+              )}
+              {event.location && (
+                <div className="flex items-center gap-2 text-sm text-neutral-400">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span>{event.location}</span>
+                </div>
+              )}
+              {event.link && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Link2 className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                  <a
+                    href={event.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="truncate text-accent hover:underline"
+                  >
+                    {event.link}
+                  </a>
+                </div>
+              )}
+              {isRelease && releaseInfo && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-xs font-medium capitalize",
+                        releaseInfo.status === "live"
+                          ? "bg-green-900/50 text-green-400"
+                          : releaseInfo.status === "submitted" ||
+                              releaseInfo.status === "processing"
+                            ? "bg-yellow-900/50 text-yellow-400"
+                            : releaseInfo.status === "rejected"
+                              ? "bg-red-900/50 text-red-400"
+                              : "bg-neutral-800 text-neutral-400"
+                      )}
+                    >
+                      {releaseInfo.status}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 rounded-lg border border-neutral-800 bg-neutral-900/50 p-3">
+                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" />
+                    <p className="text-xs leading-relaxed text-neutral-400">
+                      {canEditRelease
+                        ? "To reschedule this release, edit it under Releases. The calendar will update automatically."
+                        : `This release is ${releaseInfo.status} and can no longer be rescheduled.`}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "flex items-center",
+              isRelease ? "justify-end" : "justify-between"
+            )}
+          >
+            {!isRelease && (
+              <button
+                type="button"
+                onClick={handleClickDelete}
+                className="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+            )}
+            {isRelease ? (
+              <Link
+                href={`/releases/${releaseInfo?.id}`}
+                onClick={onClose}
+                className="flex items-center justify-center gap-2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700"
+              >
+                View release
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            ) : (
+              <Button size="sm" onClick={handleClickEdit}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                Edit event
+              </Button>
+            )}
+          </div>
+        </div>
+      </>
+    );
+
+    if (isPanel) {
+      return (
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto border-t border-neutral-800 bg-neutral-950">
+          <div className="w-full border-x border-b border-neutral-800 bg-neutral-950">
+            {viewBody}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
@@ -263,140 +452,7 @@ export function EventDetailModal({
           className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className={cn("h-1 w-full rounded-t-2xl", colorStyle.dot)} />
-
-          <div className="p-5">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  {isRelease && (
-                    <Disc3 className="h-4 w-4 shrink-0 text-neutral-400" />
-                  )}
-                  {!isRelease && (
-                    <span
-                      className={cn(
-                        "h-2.5 w-2.5 shrink-0 rounded-full",
-                        colorStyle.dot
-                      )}
-                    />
-                  )}
-                  <h2 className="truncate text-base font-semibold leading-snug text-white">
-                    {event.title}
-                  </h2>
-                </div>
-                <p className="mt-1.5 text-sm text-neutral-400">
-                  {fmtOccurrenceDate(occurrence)}
-                </p>
-                {isRecurring && event.recurrence && (
-                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
-                    <Repeat2 className="h-3 w-3" />
-                    {recurrenceSummary(event.recurrence)}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-0.5 shrink-0 text-neutral-500 hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {(event.description ||
-              event.location ||
-              event.link ||
-              isRelease) && (
-              <div className="mb-4 space-y-2 border-t border-neutral-800 pt-4">
-                {event.description && (
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">
-                    {event.description}
-                  </p>
-                )}
-                {event.location && (
-                  <div className="flex items-center gap-2 text-sm text-neutral-400">
-                    <MapPin className="h-3.5 w-3.5 shrink-0" />
-                    <span>{event.location}</span>
-                  </div>
-                )}
-                {event.link && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Link2 className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
-                    <a
-                      href={event.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate text-accent hover:underline"
-                    >
-                      {event.link}
-                    </a>
-                  </div>
-                )}
-                {isRelease && releaseInfo && (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-                          releaseInfo.status === "live"
-                            ? "bg-green-900/50 text-green-400"
-                            : releaseInfo.status === "submitted" ||
-                                releaseInfo.status === "processing"
-                              ? "bg-yellow-900/50 text-yellow-400"
-                              : releaseInfo.status === "rejected"
-                                ? "bg-red-900/50 text-red-400"
-                                : "bg-neutral-800 text-neutral-400"
-                        )}
-                      >
-                        {releaseInfo.status}
-                      </span>
-                    </div>
-                    <div className="flex gap-2 rounded-lg border border-neutral-800 bg-neutral-900/50 p-3">
-                      <Info className="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" />
-                      <p className="text-xs leading-relaxed text-neutral-400">
-                        {canEditRelease
-                          ? "To reschedule this release, edit it under Releases. The calendar will update automatically."
-                          : `This release is ${releaseInfo.status} and can no longer be rescheduled.`}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            <div
-              className={cn(
-                "flex items-center",
-                isRelease ? "justify-end" : "justify-between"
-              )}
-            >
-              {!isRelease && (
-                <button
-                  type="button"
-                  onClick={handleClickDelete}
-                  className="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </button>
-              )}
-              {isRelease ? (
-                <Link
-                  href={`/releases/${releaseInfo?.id}`}
-                  onClick={onClose}
-                  className="flex items-center justify-center gap-2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700"
-                >
-                  View release
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              ) : (
-                <Button size="sm" onClick={handleClickEdit}>
-                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                  Edit event
-                </Button>
-              )}
-            </div>
-          </div>
+          {viewBody}
         </div>
       </div>
     );
@@ -404,67 +460,84 @@ export function EventDetailModal({
 
   if (state === "scope") {
     const actionLabel = scopeTarget === "delete" ? "Delete" : "Edit";
+    const scopeBody = (
+      <>
+        <DetailModalHeader
+          showBack
+          title={`${actionLabel} recurring event`}
+          onBack={() => setState("view")}
+          onClose={onClose}
+          showCloseButton={!isPanel}
+        />
+        <div className="space-y-1 px-5 py-4">
+          {(
+            [
+              { value: "this", label: "This event" },
+              { value: "following", label: "This and following events" },
+              { value: "all", label: "All events" },
+            ] as const
+          ).map((opt) => (
+            <label
+              key={opt.value}
+              className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-neutral-800"
+            >
+              <input
+                type="radio"
+                name="scope"
+                value={opt.value}
+                checked={scope === opt.value}
+                onChange={() => setScope(opt.value)}
+                className="accent-accent"
+              />
+              <span className="text-sm text-neutral-200">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-neutral-800 px-5 py-4">
+          <Button variant="ghost" size="sm" onClick={() => setState("view")}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            variant={scopeTarget === "delete" ? "danger" : "primary"}
+            onClick={handleScopeConfirm}
+          >
+            {scopeTarget === "delete" ? "Delete" : "Continue"}
+          </Button>
+        </div>
+      </>
+    );
+
+    if (isPanel) {
+      return (
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto border-t border-neutral-800 bg-neutral-950">
+          <div className="w-full border-x border-b border-neutral-800 bg-neutral-950">
+            {scopeBody}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
         <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
-          <DetailModalHeader
-            showBack
-            title={`${actionLabel} recurring event`}
-            onBack={() => setState("view")}
-            onClose={onClose}
-          />
-          <div className="space-y-1 px-5 py-4">
-            {(
-              [
-                { value: "this", label: "This event" },
-                { value: "following", label: "This and following events" },
-                { value: "all", label: "All events" },
-              ] as const
-            ).map((opt) => (
-              <label
-                key={opt.value}
-                className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-neutral-800"
-              >
-                <input
-                  type="radio"
-                  name="scope"
-                  value={opt.value}
-                  checked={scope === opt.value}
-                  onChange={() => setScope(opt.value)}
-                  className="accent-accent"
-                />
-                <span className="text-sm text-neutral-200">{opt.label}</span>
-              </label>
-            ))}
-          </div>
-          <div className="flex justify-end gap-2 border-t border-neutral-800 px-5 py-4">
-            <Button variant="ghost" size="sm" onClick={() => setState("view")}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              variant={scopeTarget === "delete" ? "danger" : "primary"}
-              onClick={handleScopeConfirm}
-            >
-              {scopeTarget === "delete" ? "Delete" : "Continue"}
-            </Button>
-          </div>
+          {scopeBody}
         </div>
       </div>
     );
   }
 
   if (state === "edit" && form) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 pt-16 pb-8">
-        <div className="w-full max-w-lg rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
-          <DetailModalHeader
-            showBack
-            title="Edit event"
-            onBack={() => setState("view")}
-            onClose={onClose}
-          />
-
+    const editBody = (
+      <>
+        <DetailModalHeader
+          showBack
+          title="Edit event"
+          onBack={() => setState("view")}
+          onClose={onClose}
+          showCloseButton={!isPanel}
+        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <EventFormFields
             form={form}
             set={setF}
@@ -473,29 +546,44 @@ export function EventDetailModal({
             toggleFmt={toggleFmt}
             toggleDay={toggleDay}
           />
-
-          <div className="flex items-center justify-between border-t border-neutral-800 px-5 py-4">
-            <button
-              type="button"
-              onClick={handleClickDelete}
-              className="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300"
+        </div>
+        <div className="flex shrink-0 items-center justify-between border-t border-neutral-800 px-5 py-4">
+          <button
+            type="button"
+            onClick={handleClickDelete}
+            className="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setState("view")}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!form.title.trim()}
+              onClick={handleSave}
             >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setState("view")}>
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                disabled={!form.title.trim()}
-                onClick={handleSave}
-              >
-                Save
-              </Button>
-            </div>
+              Save
+            </Button>
           </div>
+        </div>
+      </>
+    );
+
+    if (isPanel) {
+      return (
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden border-t border-neutral-800 bg-neutral-950">
+          {editBody}
+        </div>
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 pt-16 pb-8">
+        <div className="flex max-h-[calc(100vh-6rem)] w-full max-w-lg flex-col rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
+          {editBody}
         </div>
       </div>
     );

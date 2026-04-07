@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Plus, Users, Download, Upload } from "lucide-react";
+import { Users, Download, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { CrmContact, CrmContactCollaboration } from "@/lib/supabase/types";
+import { parseRolesCsvCell } from "@/lib/crm/crm-roles";
 import { CRM_STATUS_OPTIONS } from "@/lib/crm-status";
 import { S } from "@/components/studio/ui/s";
 import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
 import { StudioCrmEditPanel } from "@/components/studio/windows/StudioCrmEditPanel";
-import { StudioNewCrmContactModal } from "@/components/studio/StudioNewCrmContactModal";
+import { StudioNewCrmContactPanel } from "@/components/studio/StudioNewCrmContactPanel";
+import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
 import {
   collaborationToToken,
   parseCollaborationToken,
@@ -45,6 +47,7 @@ type Song    = { id: string; title: string };
 
 type CrmStackEntry =
   | { type: "list" }
+  | { type: "new" }
   | { type: "detail"; contactId: string };
 
 function initialCrmStack(initialContactId?: string | null): {
@@ -116,6 +119,8 @@ export function StudioCrmWindow({
   const [current, setCurrent] = useState<CrmStackEntry>(boot.current);
   const [future, setFuture] = useState<CrmStackEntry[]>(boot.future);
   const [detailTitle, setDetailTitle] = useState<string | null>(null);
+  const [newContactFormKey, setNewContactFormKey] = useState(0);
+  const [newContactBusy, setNewContactBusy] = useState(false);
 
   const appliedBootstrap = useRef<string | null>(initialContactId ?? null);
   useEffect(() => {
@@ -145,12 +150,13 @@ export function StudioCrmWindow({
 
   const goBack = useCallback(() => {
     if (past.length === 0) return;
+    if (current.type === "new" && newContactBusy) return;
     const prev = past[past.length - 1];
     setFuture((f) => [current, ...f]);
     setCurrent(prev);
     setPast((p) => p.slice(0, -1));
     if (prev.type === "list") setDetailTitle(null);
-  }, [past, current]);
+  }, [past, current, newContactBusy]);
 
   const goForward = useCallback(() => {
     if (future.length === 0) return;
@@ -161,13 +167,27 @@ export function StudioCrmWindow({
     if (next.type === "list") setDetailTitle(null);
   }, [future, current]);
 
-  const canBack = past.length > 0;
+  const canBack =
+    past.length > 0 && !(current.type === "new" && newContactBusy);
   const canForward = future.length > 0;
+
+  useEffect(() => {
+    if (current.type !== "new") setNewContactBusy(false);
+  }, [current.type]);
 
   const chromeTitle = useMemo(() => {
     if (current.type === "list") return null;
+    if (current.type === "new") return "New contact";
     return detailTitle ?? CRM_DETAIL_FALLBACK;
   }, [current.type, detailTitle]);
+
+  const goToNewContact = useCallback(() => {
+    setDetailTitle(null);
+    setPast((p) => [...p, current]);
+    setCurrent({ type: "new" });
+    setFuture([]);
+    setNewContactFormKey((k) => k + 1);
+  }, [current]);
 
   useEffect(() => {
     chrome.setTitle(chromeTitle);
@@ -198,7 +218,6 @@ export function StudioCrmWindow({
   const [importing, setImporting] = useState(false);
   const [ioMessage, setIoMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
-  const [newContactModalOpen, setNewContactModalOpen] = useState(false);
 
   const loadContacts = useCallback(async () => {
     const supabase = createClient();
@@ -239,12 +258,15 @@ export function StudioCrmWindow({
     return () => { cancelled = true; };
   }, [loadContacts]);
 
+  /** From stack “new” screen: open detail without leaving “new” in history. */
   const handleNewContactCreated = useCallback(
     async (contactId: string) => {
       await loadContacts();
-      goToDetail(contactId);
+      setFuture([]);
+      setDetailTitle(null);
+      setCurrent({ type: "detail", contactId });
     },
-    [loadContacts, goToDetail]
+    [loadContacts]
   );
 
   // ── Export ──────────────────────────────────────────────────────────────
@@ -272,7 +294,8 @@ export function StudioCrmWindow({
       downloadCsv(`sidestage-crm-export-${new Date().toISOString().slice(0, 10)}.csv`,
         list.map((c) => ({
           name: c.name, email: c.email ?? "", instagram: c.instagram ?? "",
-          tiktok: c.tiktok ?? "", role: c.role ?? "", notes: c.notes ?? "",
+          tiktok: c.tiktok ?? "", website: c.website ?? "",
+          roles: (c.roles ?? []).join(" | "), notes: c.notes ?? "",
           last_contacted_at: c.last_contacted_at ?? "", status: c.status,
           collaborations: (collabTokens[c.id] || []).join(" | "),
         }))
@@ -308,7 +331,10 @@ export function StudioCrmWindow({
           email: getCell(row, "email", "e-mail") || null,
           instagram: getCell(row, "instagram", "ig") || null,
           tiktok: getCell(row, "tiktok", "tik_tok") || null,
-          role: getCell(row, "role") || null,
+          website: getCell(row, "website", "url", "other_url", "other url") || null,
+          roles: parseRolesCsvCell(
+            getCell(row, "roles", "role", "roles / titles")
+          ),
           notes: getCell(row, "notes", "note") || null,
           last_contacted_at: getCell(row, "last_contacted_at", "last_contacted", "last contacted") || null,
           status: normalizeStatus(getCell(row, "status") || "active"),
@@ -402,26 +428,10 @@ export function StudioCrmWindow({
                   e.target.value = "";
                 }}
               />
-              <button
-                type="button"
-                onClick={() => setNewContactModalOpen(true)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: S.accentText,
-                  background: S.accent,
-                  border: `1px solid ${S.accent}`,
-                  borderRadius: 2,
-                  padding: "5px 9px",
-                  cursor: "pointer",
-                }}
-              >
-                <Plus size={10} strokeWidth={3} />
-                New
-              </button>
+              <StudioMicroappNewButton
+                label="New contact"
+                onClick={goToNewContact}
+              />
             </div>
           </div>
 
@@ -468,23 +478,12 @@ export function StudioCrmWindow({
                   Track collaborators, managers, and relationships. Link them to
                   releases or library songs.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setNewContactModalOpen(true)}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: S.accentText,
-                    background: S.accent,
-                    border: `1px solid ${S.accent}`,
-                    borderRadius: 2,
-                    padding: "6px 12px",
-                    cursor: "pointer",
-                    marginTop: 4,
-                  }}
-                >
-                  Add first contact
-                </button>
+                <div style={{ marginTop: 4 }}>
+                  <StudioMicroappNewButton
+                    label="New contact"
+                    onClick={goToNewContact}
+                  />
+                </div>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -500,6 +499,13 @@ export function StudioCrmWindow({
             )}
           </div>
         </>
+      ) : current.type === "new" ? (
+        <StudioNewCrmContactPanel
+          formKey={newContactFormKey}
+          onBusyChange={setNewContactBusy}
+          onCancel={goBack}
+          onCreated={handleNewContactCreated}
+        />
       ) : (
         <StudioCrmEditPanel
           contactId={current.contactId}
@@ -511,12 +517,6 @@ export function StudioCrmWindow({
           onLoadedMeta={onContactMeta}
         />
       )}
-
-      <StudioNewCrmContactModal
-        open={newContactModalOpen}
-        onClose={() => setNewContactModalOpen(false)}
-        onCreated={handleNewContactCreated}
-      />
     </div>
   );
 }
@@ -553,8 +553,10 @@ function ContactCard({
           <span style={{ fontSize: 13, fontWeight: 600, color: S.textPrimary, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {c.name}
           </span>
-          {c.role && (
-            <span style={{ fontSize: 11, color: S.textMuted, display: "block", marginTop: 1 }}>{c.role}</span>
+          {(c.roles?.length ?? 0) > 0 && (
+            <span style={{ fontSize: 11, color: S.textMuted, display: "block", marginTop: 1 }}>
+              {(c.roles ?? []).join(" · ")}
+            </span>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>

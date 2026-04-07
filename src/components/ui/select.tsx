@@ -1,10 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils/cn";
-import { forwardRef, type SelectHTMLAttributes } from "react";
+import { forwardRef, type ReactNode, type SelectHTMLAttributes } from "react";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
+  label?: ReactNode;
   error?: string;
   options: { value: string; label: string }[];
   placeholder?: string;

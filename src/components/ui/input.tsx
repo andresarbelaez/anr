@@ -1,17 +1,24 @@
 "use client";
 
 import { cn } from "@/lib/utils/cn";
-import { forwardRef, useState, type InputHTMLAttributes } from "react";
+import {
+  forwardRef,
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
+  label?: ReactNode;
   error?: string;
+  /** Warm light fields for studio / public listen pages. Default: dashboard dark. */
+  appearance?: "dark" | "studio";
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, type, ...props }, ref) => {
+  ({ className, label, error, id, type, appearance = "dark", ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === "password";
 
@@ -20,7 +27,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={id}
-            className="block text-sm font-medium text-neutral-300"
+            className={cn(
+              "block text-sm font-medium",
+              appearance === "studio"
+                ? "text-[#5a3518]"
+                : "text-neutral-300"
+            )}
           >
             {label}
           </label>
@@ -31,9 +43,16 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             id={id}
             type={isPassword && showPassword ? "text" : type}
             className={cn(
-              "flex h-10 w-full rounded-lg border bg-neutral-900 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50",
+              "flex h-10 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50",
+              appearance === "studio"
+                ? "bg-[#fdf8f0] text-[#1e1008] placeholder:text-[#b89070] focus:ring-[#a85c10]/35"
+                : "border-neutral-700 bg-neutral-900 text-white placeholder:text-neutral-500 focus:ring-white/20",
               isPassword && "pr-10",
-              error ? "border-red-500" : "border-neutral-700",
+              error
+                ? "border-red-600"
+                : appearance === "studio"
+                  ? "border-[#d4b896]"
+                  : "border-neutral-700",
               className
             )}
             {...props}
@@ -43,7 +62,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               type="button"
               variant="bare"
               onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-2.5 top-1/2 h-auto min-h-0 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
+              className={cn(
+                "absolute right-2.5 top-1/2 h-auto min-h-0 -translate-y-1/2",
+                appearance === "studio"
+                  ? "text-[#8a6040] hover:text-[#5a3518]"
+                  : "text-neutral-500 hover:text-neutral-300"
+              )}
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
@@ -55,7 +79,16 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             </Button>
           )}
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && (
+          <p
+            className={cn(
+              "text-sm",
+              appearance === "studio" ? "text-[#a82820]" : "text-red-400"
+            )}
+          >
+            {error}
+          </p>
+        )}
       </div>
     );
   }

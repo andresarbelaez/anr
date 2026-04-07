@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarClient } from "@/components/dashboard/calendar/CalendarClient";
+import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
 
 /**
  * CSS overrides that remap Tailwind's neutral-dark palette → warm light studio
@@ -80,6 +81,11 @@ const STUDIO_CAL_CSS = `
 .studio-cal ::placeholder { color: #b89070 !important; }
 `;
 
+function StudioCalendarInner() {
+  const chrome = useStudioWindowChrome();
+  return <CalendarClient studioChrome={chrome} />;
+}
+
 export function StudioCalendarWindow() {
   return (
     <div
@@ -94,7 +100,7 @@ export function StudioCalendarWindow() {
       }}
     >
       <style>{STUDIO_CAL_CSS}</style>
-      <CalendarClient />
+      <StudioCalendarInner />
     </div>
   );
 }

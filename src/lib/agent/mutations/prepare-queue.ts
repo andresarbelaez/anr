@@ -1,3 +1,4 @@
+import { parseCrmRolesFromUnknown } from "@/lib/crm/crm-roles";
 import {
   asBool,
   asNonEmptyString,
@@ -335,8 +336,13 @@ export function prepareMutationForQueue(
       if (asOptionalString(args.tiktok) !== undefined) {
         cleanArgs.tiktok = asOptionalString(args.tiktok)?.trim() || null;
       }
-      if (asOptionalString(args.role) !== undefined) {
-        cleanArgs.role = asOptionalString(args.role)?.trim() || null;
+      if (asOptionalString(args.website) !== undefined) {
+        cleanArgs.website = asOptionalString(args.website)?.trim() || null;
+      }
+      if (args.roles !== undefined || args.role !== undefined) {
+        cleanArgs.roles = parseCrmRolesFromUnknown(
+          args.roles !== undefined ? args.roles : args.role
+        );
       }
       if (asOptionalString(args.notes) !== undefined) {
         cleanArgs.notes = asOptionalString(args.notes) ?? null;
@@ -369,8 +375,13 @@ export function prepareMutationForQueue(
         patch.instagram = asOptionalString(args.instagram)?.trim() || null;
       if (asOptionalString(args.tiktok) !== undefined)
         patch.tiktok = asOptionalString(args.tiktok)?.trim() || null;
-      if (asOptionalString(args.role) !== undefined)
-        patch.role = asOptionalString(args.role)?.trim() || null;
+      if (asOptionalString(args.website) !== undefined)
+        patch.website = asOptionalString(args.website)?.trim() || null;
+      if (args.roles !== undefined) {
+        patch.roles = parseCrmRolesFromUnknown(args.roles);
+      } else if (args.role !== undefined) {
+        patch.roles = parseCrmRolesFromUnknown(args.role);
+      }
       if (asOptionalString(args.notes) !== undefined)
         patch.notes = asOptionalString(args.notes) ?? null;
       if (asOptionalString(args.last_contacted_at) !== undefined) {

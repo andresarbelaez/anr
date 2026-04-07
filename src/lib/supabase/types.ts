@@ -133,7 +133,8 @@ export interface CrmContact {
   email: string | null;
   instagram: string | null;
   tiktok: string | null;
-  role: string | null;
+  website: string | null;
+  roles: string[];
   notes: string | null;
   last_contacted_at: string | null;
   status: string;
