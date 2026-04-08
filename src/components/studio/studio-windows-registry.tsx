@@ -177,7 +177,7 @@ export const STUDIO_WINDOWS: Record<string, StudioWindowDef> = {
       ),
   },
   settings: {
-    title: "Settings",
+    title: "My Profile",
     width: 520,
     height: 540,
     content: () =>

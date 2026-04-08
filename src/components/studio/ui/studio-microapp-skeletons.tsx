@@ -94,7 +94,7 @@ export function StudioMicroappSkeletonCalendar() {
 /** Single column of “form sections” like ArtistProfileSettingsForm */
 export function StudioMicroappSkeletonSettings() {
   return (
-    <Shell label="Loading settings">
+    <Shell label="Loading My Profile">
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
         {Array.from({ length: 4 }).map((_, section) => (
           <div key={section} className="flex flex-col gap-3">

@@ -29,7 +29,7 @@ import {
   PiggyBank as PiggyBankWidget,
   Phonebook,
   Robot,
-  BenchWrench,
+  StudioProfileMirror,
   VinylCrates,
 } from "@/components/studio/studio-object-widgets";
 import { STUDIO_WINDOWS } from "@/components/studio/studio-windows-registry";
@@ -61,7 +61,7 @@ const MOBILE_SHELF_SLOTS: {
   { id: "releases", label: "Releases", Widget: RecordShelf },
   { id: "calendar", label: "Calendar", Widget: WallCalendar },
   { id: "feedback", label: "Feedback", Widget: Typewriter },
-  { id: "settings", label: "Settings", Widget: BenchWrench },
+  { id: "settings", label: "My Profile", Widget: StudioProfileMirror },
   { id: "royalties", label: "Royalties", Widget: PiggyBankWidget },
   { id: "crm", label: "CRM", Widget: Phonebook },
   { id: "assistant", label: "Assistant", Widget: Robot, idle: "breathe" },

@@ -119,7 +119,7 @@ export function ArtistProfileSettingsForm({
     <div>
       {variant === "dashboard" && (
         <>
-          <h1 className="text-2xl font-bold text-white">Settings</h1>
+          <h1 className="text-2xl font-bold text-white">My Profile</h1>
           <p className="mt-1 text-sm text-neutral-400">
             Manage your artist profile
           </p>

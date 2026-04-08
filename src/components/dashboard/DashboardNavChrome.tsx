@@ -9,7 +9,7 @@ import {
   Home,
   ListMusic,
   MessageSquare,
-  Settings,
+  User,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -71,8 +71,8 @@ const navItems: NavItem[] = [
   {
     section: "settings",
     href: "/studio?open=settings",
-    label: "Settings",
-    icon: Settings,
+    label: "My Profile",
+    icon: User,
   },
 ];
 

@@ -17,7 +17,7 @@ import {
   PiggyBank,
   Phonebook,
   Robot,
-  BenchWrench,
+  StudioProfileMirror,
   VinylCrates,
 } from "@/components/studio/studio-object-widgets";
 
@@ -237,12 +237,12 @@ export function StudioDesktopRoom() {
 
       <StudioObject
         id="settings"
-        label="Settings"
+        label="My Profile"
         onOpen={handleOpen}
         isOpen={openWindows.has("settings")}
-        style={{ left: "34%", top: "68%", transform: "translate(-50%, -50%)" }}
+        style={{ left: "28%", top: "54%", transform: "translate(-50%, -50%)" }}
       >
-        <BenchWrench />
+        <StudioProfileMirror />
       </StudioObject>
 
       <AnimatePresence>
