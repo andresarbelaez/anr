@@ -5,6 +5,10 @@
   --foreground: #ededed;
   --accent: #6FA86D;
   --accent-hover: #548F52;
+  /* Match calendar week floating scroll affordance (neutral-700/25 + neutral-500/70) */
+  --scrollbar-track: rgba(64, 64, 64, 0.25);
+  --scrollbar-thumb: rgba(115, 115, 115, 0.7);
+  --scrollbar-thumb-hover: rgba(163, 163, 163, 0.85);
 }
 
 @theme inline {
@@ -23,28 +27,39 @@ body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
 }
 
+html {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+
 ::selection {
   background: rgba(255, 255, 255, 0.15);
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 4px;
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--scrollbar-thumb-hover);
 }
 
-/* Calendar week view: scrollbar must not consume layout width (global rule above is 8px),
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Calendar week view: scrollbar must not consume layout width (global rule above is 4px),
    or day columns drift vs header / all-day. Scroll still works via wheel / touch / trackpad. */
 .week-view-hour-scroll::-webkit-scrollbar {
   width: 0;

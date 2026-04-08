@@ -81,8 +81,10 @@ export function SplitDateInput({
     [onChange]
   );
 
+  /* Tight fixed widths: w-14/w-20 left large empty gutters that read as “padding”.
+     !px-0 + narrow w-*; tabular-nums keeps digits stable. */
   const inputCls =
-    "w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-center text-sm text-white focus:outline-none focus:ring-1 focus:ring-accent";
+    "split-date-input rounded border border-neutral-700 bg-neutral-900 !px-0 py-1.5 text-center text-sm tabular-nums text-white [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-accent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
   const monthField = (
     <input
@@ -92,7 +94,7 @@ export function SplitDateInput({
       placeholder="MM"
       value={month}
       onChange={(e) => emit(year, e.target.value, day)}
-      className={cn(inputCls, "w-14")}
+      className={cn(inputCls, "w-10")}
     />
   );
   const dayField = (
@@ -103,7 +105,7 @@ export function SplitDateInput({
       placeholder="DD"
       value={day}
       onChange={(e) => emit(year, month, e.target.value)}
-      className={cn(inputCls, "w-14")}
+      className={cn(inputCls, "w-10")}
     />
   );
   const yearField = (
@@ -114,7 +116,7 @@ export function SplitDateInput({
       placeholder="YYYY"
       value={year}
       onChange={(e) => emit(e.target.value, month, day)}
-      className={cn(inputCls, "w-20")}
+      className={cn(inputCls, "w-16")}
     />
   );
   const sep = <span className="select-none text-neutral-600">/</span>;

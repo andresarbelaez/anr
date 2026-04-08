@@ -46,9 +46,6 @@ const STUDIO_CHAT_CSS = `
   box-shadow: 0 0 0 2px rgba(168,92,16,0.20) !important;
 }
 .studio-chat textarea::placeholder { color: #b89070 !important; }
-
-/* ── Scrollbar ───────────────────────────────────────────────────────────── */
-.studio-chat ::-webkit-scrollbar-thumb { background: #c0a070 !important; }
 `;
 
 export function StudioAssistantWindow() {

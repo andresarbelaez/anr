@@ -60,9 +60,6 @@ const STUDIO_CAL_CSS = `
   border-color: #d4b896 !important;
 }
 
-/* ── Scrollbar ───────────────────────────────────────────────────────────── */
-.studio-cal ::-webkit-scrollbar-thumb { background: #c0a070 !important; }
-
 /* ── Modal / dialog overlays ─────────────────────────────────────────────── */
 .studio-cal .bg-black\\/60,
 .studio-cal .bg-black\\/50 { background-color: rgba(30,16,8,0.55) !important; }
@@ -74,6 +71,10 @@ const STUDIO_CAL_CSS = `
   background-color: #f5ede0 !important;
   border-color:     #d4b896 !important;
   color:            #1e1008 !important;
+}
+/* SplitDateInput (MM/DD/YYYY): keep tight — generic inputs may gain padding later */
+.studio-cal input.split-date-input:not([type="range"]) {
+  padding-inline: 0 !important;
 }
 .studio-cal input:focus,
 .studio-cal textarea:focus,

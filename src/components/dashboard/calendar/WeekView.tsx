@@ -29,7 +29,7 @@ const WEEK_DAY_STRIP = "min-w-0 flex-1";
 
 /**
  * Hide the native vertical scrollbar so it does not shrink the 7-column grid (avoids
- * compounding misalignment vs header / all-day; global ::-webkit-scrollbar width is 8px
+ * compounding misalignment vs header / all-day; global ::-webkit-scrollbar width is 4px
  * and does not match scrollbar-gutter). Scroll still works via wheel / touch / trackpad.
  */
 const HOUR_SCROLL_SCROLLER =
