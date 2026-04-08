@@ -51,7 +51,7 @@ export default function SignupPage() {
     }
 
     if (data.session) {
-      window.location.assign(`${window.location.origin}/studio`);
+      window.location.assign(`${window.location.origin}/home`);
       return;
     }
 

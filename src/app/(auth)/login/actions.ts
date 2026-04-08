@@ -31,5 +31,5 @@ export async function loginAction(
     return { error: error.message };
   }
 
-  redirect("/studio");
+  redirect("/home");
 }

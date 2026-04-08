@@ -223,7 +223,7 @@ export function StudioDesktopRoom() {
         <PiggyBank />
       </StudioObject>
 
-      <StudioObject id="crm" label="CRM" onOpen={handleOpen} isOpen={openWindows.has("crm")} style={{ left: "61%", top: "55%", transform: "translate(-50%, -50%)" }}>
+      <StudioObject id="crm" label="Contacts" onOpen={handleOpen} isOpen={openWindows.has("crm")} style={{ left: "61%", top: "55%", transform: "translate(-50%, -50%)" }}>
         <Phonebook />
       </StudioObject>
 
@@ -281,7 +281,7 @@ export function StudioDesktopRoom() {
       <StudioViewportActions />
 
       <div className="pointer-events-none absolute right-5 bottom-4 font-mono text-[9px] tracking-[0.2em] text-amber-900/40 uppercase">
-        sidestage studio
+        Home
       </div>
     </div>
   );

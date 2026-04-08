@@ -12,7 +12,7 @@ type Props = {
 };
 
 /**
- * In-window “new contact” flow for the CRM micro-app stack (replaces modal overlay).
+ * In-window “new contact” flow for the Contacts micro-app stack (replaces modal overlay).
  */
 export function StudioNewCrmContactPanel({
   formKey,

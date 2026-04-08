@@ -76,7 +76,7 @@ export function ReleaseDetailClient({
           onClick={() => {
             if (embedStudio) {
               onMissingRelease?.();
-              if (!onMissingRelease) router.push("/studio");
+              if (!onMissingRelease) router.push("/home");
             } else {
               router.push("/releases");
             }

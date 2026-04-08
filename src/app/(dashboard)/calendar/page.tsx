@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Legacy calendar URL → studio Calendar window. */
+/** Legacy calendar URL → home Calendar window. */
 export default function CalendarRedirectPage() {
-  redirect("/studio?open=calendar");
+  redirect("/home?open=calendar");
 }

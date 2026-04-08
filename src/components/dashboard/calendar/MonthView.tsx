@@ -42,14 +42,17 @@ export function MonthView({ year, month, occurrences, onDayClick, onEventClick }
     weeks.push(week);
   }
 
+  /** 1px grid lines — single gutter color avoids divide-* stacking darker at intersections */
+  const gutter = "month-cal-grid-gutter bg-neutral-800";
+
   return (
-    <div className="flex flex-1 flex-col">
+    <div className={cn("flex min-h-0 flex-1 flex-col gap-px overflow-y-auto", gutter)}>
       {/* Day headers */}
-      <div className="grid grid-cols-7 border-b border-neutral-800">
+      <div className={cn("grid grid-cols-7 gap-px", gutter)}>
         {WEEKDAYS.map((d) => (
           <div
             key={d}
-            className="py-2 text-center text-xs font-medium text-neutral-500"
+            className="bg-neutral-950 py-2 text-center text-xs font-medium text-neutral-500"
           >
             {d}
           </div>
@@ -57,14 +60,14 @@ export function MonthView({ year, month, occurrences, onDayClick, onEventClick }
       </div>
 
       {/* Weeks */}
-      <div className="flex flex-1 flex-col divide-y divide-neutral-800">
+      <div className={cn("flex min-h-0 flex-1 flex-col gap-px", gutter)}>
         {weeks.map((week, wi) => {
           const { bars, overflowByDay } = layoutWeek(week, occurrences);
           const maxTrack = bars.length ? Math.max(...bars.map((b) => b.track)) + 1 : 0;
           const eventZoneHeight = Math.max(0, maxTrack) * EVENT_TRACK_HEIGHT + EVENT_ZONE_PADDING;
 
           return (
-            <div key={wi} className="relative grid grid-cols-7 divide-x divide-neutral-800">
+            <div key={wi} className={cn("relative grid grid-cols-7 gap-px", gutter)}>
               {/* Day cells (date numbers + overflow counts) */}
               {week.map((day, di) => {
                 const dateStr = toDateStr(day);
@@ -75,7 +78,7 @@ export function MonthView({ year, month, occurrences, onDayClick, onEventClick }
                 return (
                   <div
                     key={di}
-                    className="group relative cursor-pointer hover:bg-neutral-900/40"
+                    className="group relative cursor-pointer bg-neutral-950 hover:bg-neutral-900/40"
                     style={{ minHeight: 90 + eventZoneHeight }}
                     onClick={() => onDayClick(dateStr)}
                   >
@@ -85,7 +88,7 @@ export function MonthView({ year, month, occurrences, onDayClick, onEventClick }
                         className={cn(
                           "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
                           isToday
-                            ? "bg-accent text-black"
+                            ? "bg-accent text-[#fdf8f0]"
                             : isCurrentMonth
                               ? "text-neutral-200"
                               : "text-neutral-600"

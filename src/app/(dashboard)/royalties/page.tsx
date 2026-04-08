@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Legacy royalties URL → studio Royalties window. */
+/** Legacy royalties URL → home Royalties window. */
 export default function RoyaltiesRedirectPage() {
-  redirect("/studio?open=royalties");
+  redirect("/home?open=royalties");
 }

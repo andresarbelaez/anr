@@ -40,7 +40,7 @@ export const AGENT_READ_TOOLS = [
     function: {
       name: "list_crm_contacts",
       description:
-        "List CRM contacts (id, name, email, roles, status, …). Call this before creating or updating a contact to see existing rows and correct contact_id values. Use create_crm_contact for new people; update_crm_contact only when editing an existing id.",
+        "List contacts (id, name, email, roles, status, …). Call this before creating or updating a contact to see existing rows and correct contact_id values. Use create_crm_contact for new people; update_crm_contact only when editing an existing id.",
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
@@ -353,7 +353,7 @@ export const AGENT_MUTATION_TOOLS = [
     function: {
       name: "create_crm_contact",
       description:
-        "Queue creating a **new** CRM contact. Use this when the user asks to add someone who is not already in CRM. Do **not** use update_crm_contact for new people. Call list_crm_contacts first if you need to avoid duplicates. Requires user approval.",
+        "Queue creating a **new** contact. Use this when the user asks to add someone who is not already in their contacts. Do **not** use update_crm_contact for new people. Call list_crm_contacts first if you need to avoid duplicates. Requires user approval.",
       parameters: {
         type: "object",
         properties: {
@@ -394,7 +394,7 @@ export const AGENT_MUTATION_TOOLS = [
     function: {
       name: "update_crm_contact",
       description:
-        "Queue changes to an **existing** CRM contact only. Requires **contact_id** from list_crm_contacts. **Never** use this to add a new person—use **create_crm_contact** instead. Only include fields to change. Requires user approval.",
+        "Queue changes to an **existing** contact only. Requires **contact_id** from list_crm_contacts. **Never** use this to add a new person—use **create_crm_contact** instead. Only include fields to change. Requires user approval.",
       parameters: {
         type: "object",
         properties: {
@@ -433,7 +433,7 @@ export const AGENT_MUTATION_TOOLS = [
     function: {
       name: "delete_crm_contact",
       description:
-        "Queue deletion of a CRM contact and their collaboration rows. Requires user approval.",
+        "Queue deletion of a contact and their collaboration rows. Requires user approval.",
       parameters: {
         type: "object",
         properties: {

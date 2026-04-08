@@ -12,7 +12,7 @@ const OPEN_PANEL_IDS = new Set([
 ]);
 
 /**
- * Which studio micro-app should be focused, derived from /studio search params
+ * Which studio micro-app should be focused, derived from /home search params
  * (deep links + `open=`). Mirrors the desktop auto-open logic.
  */
 export function getStudioActiveAppFromSearchParams(

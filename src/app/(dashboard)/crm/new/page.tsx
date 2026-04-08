@@ -29,7 +29,7 @@ export default function CrmNewPage() {
         className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to CRM
+        Back to Contacts
       </Link>
 
       <CrmNewContactForm

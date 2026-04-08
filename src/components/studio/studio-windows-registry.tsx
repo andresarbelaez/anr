@@ -83,7 +83,7 @@ const LazyStudioSettingsWindow = lazyStudioMicroapp(() =>
   }))
 );
 
-/** Passed into each window’s root view — extend per micro-app (e.g. CRM contact id). */
+/** Passed into each window’s root view — extend per micro-app (e.g. contact id). */
 export type StudioWindowLaunchContext = {
   initialFeedbackVersionId?: string | null;
   initialReleaseId?: string | null;
@@ -167,7 +167,7 @@ export const STUDIO_WINDOWS: Record<string, StudioWindowDef> = {
       ),
   },
   crm: {
-    title: "CRM",
+    title: "Contacts",
     width: 700,
     height: 560,
     content: (ctx) =>

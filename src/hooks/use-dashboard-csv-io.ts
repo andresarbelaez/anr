@@ -8,7 +8,7 @@ export type DashboardIoMessage = {
 };
 
 /**
- * Shared export/import busy flags + flash message state for dashboard list pages (Library, CRM).
+ * Shared export/import busy flags + flash message state for dashboard list pages (Library, Contacts).
  */
 export function useDashboardCsvIo() {
   const [exporting, setExporting] = useState(false);

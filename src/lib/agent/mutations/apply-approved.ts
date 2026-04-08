@@ -407,7 +407,7 @@ export async function applyApprovedMutation(
       const idHint = created?.id
         ? ` (id ${String(created.id).slice(0, 8)}…)`
         : "";
-      return { ok: true, message: `CRM contact created${idHint}.` };
+      return { ok: true, message: `Contact created${idHint}.` };
     }
     case "update_crm_contact": {
       const contactId = asUuid(args.contact_id);
@@ -437,14 +437,14 @@ export async function applyApprovedMutation(
         .update(patch)
         .eq("id", contactId);
       if (error) return { ok: false, message: error.message };
-      return { ok: true, message: "CRM contact updated." };
+      return { ok: true, message: "Contact updated." };
     }
     case "delete_crm_contact": {
       const contactId = asUuid(args.contact_id);
       if (!contactId) return { ok: false, message: "Invalid contact_id" };
       const { error } = await supabase.from("crm_contacts").delete().eq("id", contactId);
       if (error) return { ok: false, message: error.message };
-      return { ok: true, message: "CRM contact deleted." };
+      return { ok: true, message: "Contact deleted." };
     }
     case "create_calendar_event": {
       const payload: Record<string, unknown> = {

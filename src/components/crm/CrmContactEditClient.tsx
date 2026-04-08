@@ -39,7 +39,7 @@ type CollabRow = CrmContactCollaboration & {
 type Props = {
   contactId: string;
   embedStudio?: boolean;
-  /** Collaboration pills link into studio deep routes instead of legacy pages. */
+  /** Collaboration pills link into home deep routes instead of legacy pages. */
   studioCollabLinks?: boolean;
   onMissingContact?: () => void;
   onDeleted?: () => void;
@@ -210,7 +210,7 @@ export function CrmContactEditClient({
     }
     if (embedStudio) {
       onDeleted?.();
-      if (!onDeleted) router.push("/studio?open=crm");
+      if (!onDeleted) router.push("/home?open=crm");
     } else {
       router.push("/crm");
     }
@@ -269,11 +269,11 @@ export function CrmContactEditClient({
 
   const releaseHref = (rid: string) =>
     studioCollabLinks
-      ? `/studio?releaseId=${encodeURIComponent(rid)}`
+      ? `/home?releaseId=${encodeURIComponent(rid)}`
       : `/releases/${rid}`;
   const catalogHref = (sid: string) =>
     studioCollabLinks
-      ? `/studio?catalogSongId=${encodeURIComponent(sid)}`
+      ? `/home?catalogSongId=${encodeURIComponent(sid)}`
       : `/catalog/${sid}`;
 
   if (loading) {
@@ -293,15 +293,15 @@ export function CrmContactEditClient({
             type="button"
             onClick={() => {
               onMissingContact?.();
-              if (!onMissingContact) router.push("/studio?open=crm");
+              if (!onMissingContact) router.push("/home?open=crm");
             }}
             className="mt-4 text-sm text-white underline"
           >
-            Back to CRM
+            Back to Contacts
           </button>
         ) : (
           <Link href="/crm" className="mt-4 inline-block text-white underline">
-            Back to CRM
+            Back to Contacts
           </Link>
         )}
       </div>
@@ -316,7 +316,7 @@ export function CrmContactEditClient({
           className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to CRM
+          Back to Contacts
         </Link>
       )}
 

@@ -27,9 +27,9 @@ export type ButtonVariant =
   | "studioMicroappNew"
   /** White circular control — catalog / embedded audio play. */
   | "circleLight"
-  /** Studio viewport “Support us” chip (opens donate modal; fixed bottom-right in /studio). */
+  /** Studio viewport “Support us” chip (opens donate modal; fixed bottom-right in /home). */
   | "studioViewportSupport"
-  /** Studio viewport “Sign out” — warm dark chip (fixed bottom-right in /studio). */
+  /** Studio viewport “Sign out” — warm dark chip (fixed bottom-right in /home). */
   | "studioViewportSignOut"
   /** No chrome — use with className (e.g. modal backdrop). */
   | "bare";

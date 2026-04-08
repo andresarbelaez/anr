@@ -68,7 +68,7 @@ export default function HomePage() {
           className="mx-auto mt-6 max-w-lg text-lg leading-relaxed"
           style={{ color: S.textMuted }}
         >
-          Catalog, release prep, calendar, CRM, feedback, and sidestage-1 — an
+          Catalog, release prep, calendar, contacts, feedback, and sidestage-1 — an
           AI that knows your work. Free for all artists.
         </p>
 
@@ -96,7 +96,7 @@ export default function HomePage() {
             },
             {
               icon: Users,
-              title: "CRM for your network",
+              title: "Contacts for your network",
               body: "Contacts, roles, last touch, and collaborations tied to releases or library songs—the people around your career in one place.",
             },
             {
@@ -112,7 +112,7 @@ export default function HomePage() {
             {
               icon: Sparkles,
               title: "sidestage-1",
-              body: "An AI that knows your catalog, contacts, and releases. Draft outreach, pull links, or run your CRM from plain language.",
+              body: "An AI that knows your catalog, contacts, and releases. Draft outreach, pull links, or manage contacts from plain language.",
             },
             {
               icon: Heart,

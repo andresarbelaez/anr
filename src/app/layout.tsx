@@ -26,7 +26,7 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "sidestage — your music career, managed",
   description:
-    "Catalog, calendar, CRM, feedback, and sidestage-1 — free for independent artists.",
+    "Catalog, calendar, contacts, feedback, and sidestage-1 — free for independent artists.",
 };
 
 /** Ensures real device CSS width on phones (studio mobile vs desktop shell uses innerWidth). */

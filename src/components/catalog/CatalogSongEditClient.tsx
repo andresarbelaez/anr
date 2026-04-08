@@ -150,7 +150,7 @@ export function CatalogSongEditClient({
 
     if (embedStudio) {
       onDeleted?.();
-      if (!onDeleted) router.push("/studio?open=library");
+      if (!onDeleted) router.push("/home?open=library");
     } else {
       router.push("/catalog");
     }
@@ -275,7 +275,7 @@ export function CatalogSongEditClient({
             variant="link"
             onClick={() => {
               onMissingSong?.();
-              if (!onMissingSong) router.push("/studio?open=library");
+              if (!onMissingSong) router.push("/home?open=library");
             }}
             className="mt-4 !text-white hover:!text-neutral-200"
           >

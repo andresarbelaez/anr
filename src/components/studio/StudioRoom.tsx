@@ -21,7 +21,7 @@ export function StudioRoom({
       <div
         className="flex h-full min-h-[100vh] w-full flex-col items-center justify-center gap-3 bg-[#1c1208] px-6"
         aria-busy="true"
-        aria-label="Loading studio"
+        aria-label="Loading"
       >
         <div
           className="h-8 w-8 animate-spin rounded-full border-2 border-[#5a3518] border-t-[#d4b896]"
@@ -31,7 +31,7 @@ export function StudioRoom({
           className="text-center text-[10px] uppercase tracking-[0.25em] text-[#8a6040]"
           style={{ fontFamily: "var(--font-pixel, ui-monospace, monospace)" }}
         >
-          Loading studio…
+          Loading…
         </span>
       </div>
     ) : (

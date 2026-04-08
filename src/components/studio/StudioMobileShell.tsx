@@ -63,7 +63,7 @@ const MOBILE_SHELF_SLOTS: {
   { id: "feedback", label: "Feedback", Widget: Typewriter },
   { id: "settings", label: "My Profile", Widget: StudioProfileMirror },
   { id: "royalties", label: "Royalties", Widget: PiggyBankWidget },
-  { id: "crm", label: "CRM", Widget: Phonebook },
+  { id: "crm", label: "Contacts", Widget: Phonebook },
   { id: "assistant", label: "Assistant", Widget: Robot, idle: "breathe" },
   { id: "library", label: "Library", Widget: VinylCrates },
 ];
@@ -93,7 +93,7 @@ function MobileBookshelf({
           textShadow: "0 1px 3px rgba(0,0,0,0.65)",
         }}
       >
-        sidestage studio
+        Home
       </p>
       <div className="relative z-[2] grid min-h-0 flex-1 grid-cols-2 grid-rows-4 content-center gap-y-6 px-5 pb-12 pt-1 [touch-action:manipulation] place-items-center">
         {MOBILE_SHELF_SLOTS.map(({ id, label, Widget, idle }) => (
@@ -235,7 +235,7 @@ export function StudioMobileShell() {
   const [donateOpen, setDonateOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   /**
-   * Hide the micro-app layer immediately on close. `router.replace("/studio")` can lag
+   * Hide the micro-app layer immediately on close. `router.replace("/home")` can lag
    * behind on mobile; without this, `useSearchParams` keeps `showApp` true and the home
    * shelf stays `hidden` for hundreds of ms — feels frozen. Rarely, exit + `mode="wait"`
    * could also interact badly with slow paints; dismissing first avoids that coupling.
@@ -310,7 +310,7 @@ export function StudioMobileShell() {
       // The useEffect watching activeId already clears dismissMicroapp as soon as the URL settles
       // on the new app (activeId becomes truthy).
       if (id === activeId) return;
-      router.push(`/studio?open=${id}`);
+      router.push(`/home?open=${id}`);
     },
     [router, activeId]
   );
@@ -328,7 +328,7 @@ export function StudioMobileShell() {
       clearCatalogPlayer();
     }
     startTransition(() => {
-      router.replace("/studio");
+      router.replace("/home");
     });
   }, [router, activeId, clearCatalogPlayer]);
 
@@ -351,7 +351,7 @@ export function StudioMobileShell() {
       {/*
         Keep the home header + bookshelf mounted while a micro-app is open (`display: none`).
         Closing the app then only unmounts the window — avoids multi‑second remount of 8 shelf
-        widgets + SVG backdrops (React dev “long render” when returning to /studio home).
+        widgets + SVG backdrops (React dev “long render” when returning to /home).
       */}
       <div
         ref={homeLayerRef}

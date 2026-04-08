@@ -11,8 +11,8 @@ import { DashboardNavChrome } from "@/components/dashboard/DashboardNavChrome";
 
 function DashboardMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hideGlobalCatalogPlayer = pathname === "/studio";
-  const showTopChrome = pathname !== "/studio";
+  const hideGlobalCatalogPlayer = pathname === "/home";
+  const showTopChrome = pathname !== "/home";
   const { activeTrack, playerLoading, playerError } = useCatalogPlayer();
   const playerOpen = !!(activeTrack || playerLoading || playerError);
   const reservePlayerPadding = playerOpen && !hideGlobalCatalogPlayer;

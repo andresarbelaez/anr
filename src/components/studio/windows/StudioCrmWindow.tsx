@@ -306,7 +306,7 @@ export function StudioCrmWindow({
           collabTokens[row.contact_id].push(token);
         }
       }
-      downloadCsv(`sidestage-crm-export-${new Date().toISOString().slice(0, 10)}.csv`,
+      downloadCsv(`sidestage-contacts-export-${new Date().toISOString().slice(0, 10)}.csv`,
         list.map((c) => ({
           name: c.name, email: c.email ?? "", instagram: c.instagram ?? "",
           tiktok: c.tiktok ?? "", website: c.website ?? "",
@@ -417,7 +417,7 @@ export function StudioCrmWindow({
                 textTransform: "uppercase",
               }}
             >
-              CRM
+              Contacts
             </span>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <SmallBtn
@@ -610,8 +610,8 @@ function ContactCard({
               key={`${ch.kind}-${ch.id}-${i}`}
               href={
                 ch.kind === "release"
-                  ? `/studio?releaseId=${encodeURIComponent(ch.id)}`
-                  : `/studio?catalogSongId=${encodeURIComponent(ch.id)}`
+                  ? `/home?releaseId=${encodeURIComponent(ch.id)}`
+                  : `/home?catalogSongId=${encodeURIComponent(ch.id)}`
               }
               title={ch.note ? `${ch.label} — ${ch.note}` : ch.label}
               style={{

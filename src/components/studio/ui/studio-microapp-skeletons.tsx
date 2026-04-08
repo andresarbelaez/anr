@@ -234,7 +234,7 @@ export function StudioMicroappSkeletonFeedback() {
 
 export function StudioMicroappSkeletonCrm() {
   return (
-    <Shell label="Loading CRM">
+    <Shell label="Loading Contacts">
       <ListToolbar />
       <ListRows rows={7} />
     </Shell>

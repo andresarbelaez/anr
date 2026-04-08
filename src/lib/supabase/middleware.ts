@@ -42,6 +42,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/feedback") ||
     request.nextUrl.pathname.startsWith("/assistant") ||
     request.nextUrl.pathname.startsWith("/calendar") ||
+    request.nextUrl.pathname.startsWith("/home") ||
     request.nextUrl.pathname.startsWith("/studio");
 
   if (!user && isDashboardPage) {
@@ -57,7 +58,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/studio";
+    url.pathname = "/home";
     const redirectRes = NextResponse.redirect(url);
     redirectRes.headers.set(
       "Accept-CH",

@@ -25,52 +25,52 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { section: null, href: "/studio", label: "Studio", icon: Home },
+  { section: null, href: "/home", label: "Home", icon: Home },
   {
     section: "assistant",
-    href: "/studio?open=assistant",
+    href: "/home?open=assistant",
     label: "Assistant",
     icon: Sparkles,
   },
   {
     section: "calendar",
-    href: "/studio?open=calendar",
+    href: "/home?open=calendar",
     label: "Calendar",
     icon: CalendarDays,
   },
   {
     section: "releases",
-    href: "/studio?open=releases",
+    href: "/home?open=releases",
     label: "Releases",
     icon: Disc3,
   },
   {
     section: "library",
-    href: "/studio?open=library",
+    href: "/home?open=library",
     label: "Library",
     icon: ListMusic,
   },
   {
     section: "feedback",
-    href: "/studio?open=feedback",
+    href: "/home?open=feedback",
     label: "Feedback",
     icon: MessageSquare,
   },
   {
     section: "crm",
-    href: "/studio?open=crm",
-    label: "CRM",
+    href: "/home?open=crm",
+    label: "Contacts",
     icon: Users,
   },
   {
     section: "royalties",
-    href: "/studio?open=royalties",
+    href: "/home?open=royalties",
     label: "Royalties",
     icon: BarChart3,
   },
   {
     section: "settings",
-    href: "/studio?open=settings",
+    href: "/home?open=settings",
     label: "My Profile",
     icon: User,
   },
@@ -89,12 +89,12 @@ function isChromeNavActive(item: NavItem, pathname: string): boolean {
 
 export function DashboardNavChrome() {
   const pathname = usePathname();
-  if (pathname === "/studio") return null;
+  if (pathname === "/home") return null;
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-2 border-b border-neutral-800 bg-black/95 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-black/80">
       <Link
-        href="/studio"
+        href="/home"
         className="shrink-0 px-2 text-lg font-bold text-white transition hover:text-accent"
       >
         sidestage

@@ -10,11 +10,14 @@ import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome"
  * get the same treatment.
  */
 const STUDIO_CAL_CSS = `
-/* ── Layout: make CalendarClient's root fill the window ──────────────────── */
+/* ── Layout: bound CalendarClient to the studio window (no height:auto — that
+   sizes to full content and breaks inner overflow-y on week view). ───────── */
 .studio-cal > div:first-child {
-  flex: 1 !important;
+  flex: 1 1 0% !important;
   min-height: 0 !important;
-  height: auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* ── Text colors ─────────────────────────────────────────────────────────── */
@@ -40,6 +43,9 @@ const STUDIO_CAL_CSS = `
 .studio-cal .bg-neutral-900\\/50  { background-color: rgba(245,237,224,0.5) !important; }
 .studio-cal .bg-neutral-900\\/40,
 .studio-cal .hover\\:bg-neutral-900\\/40:hover { background-color: rgba(245,237,224,0.4) !important; }
+
+/* Month grid gutters (gap-px) — match border-neutral-800 so lines are not darker than borders */
+.studio-cal .month-cal-grid-gutter         { background-color: #d4b896 !important; }
 
 /* ── Border colors ───────────────────────────────────────────────────────── */
 .studio-cal .border-neutral-800            { border-color: #d4b896 !important; }

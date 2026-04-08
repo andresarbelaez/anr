@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Legacy list URL → studio Releases window. */
+/** Legacy list URL → home Releases window. */
 export default function ReleasesRedirectPage() {
-  redirect("/studio?open=releases");
+  redirect("/home?open=releases");
 }

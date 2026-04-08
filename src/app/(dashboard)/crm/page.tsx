@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Legacy list URL → studio CRM window. */
+/** Legacy list URL → home Contacts window. */
 export default function CrmRedirectPage() {
-  redirect("/studio?open=crm");
+  redirect("/home?open=crm");
 }

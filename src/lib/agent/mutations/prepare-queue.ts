@@ -354,7 +354,7 @@ export function prepareMutationForQueue(
       if (asOptionalString(args.status) !== undefined) {
         cleanArgs.status = asNonEmptyString(args.status) ?? "active";
       }
-      summary = `Create CRM contact "${name}"`;
+      summary = `Create contact "${name}"`;
       break;
     }
     case "update_crm_contact": {
@@ -399,7 +399,7 @@ export function prepareMutationForQueue(
       }
       cleanArgs.contact_id = contactId;
       Object.assign(cleanArgs, patch);
-      summary = `Update CRM contact ${contactId.slice(0, 8)}… (${Object.keys(patch).join(", ")})`;
+      summary = `Update contact ${contactId.slice(0, 8)}… (${Object.keys(patch).join(", ")})`;
       break;
     }
     case "delete_crm_contact": {
@@ -412,7 +412,7 @@ export function prepareMutationForQueue(
         };
       }
       cleanArgs.contact_id = contactId;
-      summary = `Delete CRM contact ${contactId.slice(0, 8)}…`;
+      summary = `Delete contact ${contactId.slice(0, 8)}…`;
       break;
     }
     case "create_calendar_event": {

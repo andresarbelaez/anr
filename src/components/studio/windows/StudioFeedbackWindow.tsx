@@ -300,7 +300,7 @@ export function StudioFeedbackWindow({
                   to create a shareable link.
                 </p>
                 <Link
-                  href="/studio?open=library"
+                  href="/home?open=library"
                   style={{
                     fontSize: 12,
                     fontWeight: 500,

@@ -1,4 +1,4 @@
-/** Preset labels for CRM role pills (stored in `crm_contacts.roles` text[]). */
+/** Preset labels for contact role pills (stored in `crm_contacts.roles` text[]). */
 export const CRM_ROLE_PRESETS = [
   "Producer",
   "Artist",

@@ -312,7 +312,7 @@ export function FeedbackArtistDetailClient({
           onClick={() => {
             if (embedStudio) {
               onMissingVersion?.();
-              if (!onMissingVersion) router.push("/studio");
+              if (!onMissingVersion) router.push("/home");
             } else {
               router.push("/feedback");
             }
