@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Space_Mono, DM_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils/cn";
@@ -26,7 +26,13 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "sidestage — your music career, managed",
   description:
-    "Distribution, catalog management, royalties, and an AI that knows your work — free for all artists.",
+    "Catalog, calendar, CRM, feedback, and sidestage-1 — free for independent artists.",
+};
+
+/** Ensures real device CSS width on phones (studio mobile vs desktop shell uses innerWidth). */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

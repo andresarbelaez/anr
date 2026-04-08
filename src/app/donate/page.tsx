@@ -88,8 +88,7 @@ export default function DonatePage() {
               style={{ color: S.textMuted }}
             >
               This platform is free for every artist. Your donation helps cover
-              server costs, distribution fees, and keeps the service running for
-              everyone.
+              hosting, tooling, and keeping the service running for everyone.
             </p>
           </div>
 

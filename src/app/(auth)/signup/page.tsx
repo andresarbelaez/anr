@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { AuthStudioShell } from "@/components/auth/AuthStudioShell";
 import { AuthTabs } from "@/components/ui/auth-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { S } from "@/components/studio/ui/s";
 
 export default function SignupPage() {
   const [artistName, setArtistName] = useState("");
@@ -16,7 +17,6 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,9 +51,7 @@ export default function SignupPage() {
     }
 
     if (data.session) {
-      router.push("/studio");
-      router.refresh();
-      setLoading(false);
+      window.location.assign(`${window.location.origin}/studio`);
       return;
     }
 
@@ -63,44 +61,57 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black px-4">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <h1 className="text-2xl font-bold text-white">Check your email</h1>
-          <p className="text-sm text-neutral-400">
-            We sent a confirmation link to <strong>{email}</strong>. Click
+      <AuthStudioShell>
+        <div className="space-y-4 text-center">
+          <h1
+            className="text-2xl font-bold"
+            style={{ color: S.textPrimary }}
+          >
+            Check your email
+          </h1>
+          <p className="text-sm" style={{ color: S.textMuted }}>
+            We sent a confirmation link to{" "}
+            <strong style={{ color: S.textSecondary }}>{email}</strong>. Click
             it and you&apos;ll be signed in automatically.
           </p>
           <Link
             href="/login"
-            className="inline-block text-sm font-medium text-white underline underline-offset-2 hover:text-neutral-200"
+            className="inline-block text-sm font-medium underline-offset-2 hover:underline"
+            style={{ color: S.accent }}
           >
             Back to login
           </Link>
         </div>
-      </div>
+      </AuthStudioShell>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black px-4">
-      <div className="w-full max-w-sm space-y-8">
+    <AuthStudioShell>
+      <div className="space-y-8">
         <div className="space-y-6">
           <AuthTabs />
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">
-              Start distributing for free
+            <h1
+              className="text-2xl font-bold"
+              style={{ color: S.textPrimary }}
+            >
+              You bring the music.
+              <br />
+              <span style={{ color: S.accent }}>sidestage handles the rest.</span>
             </h1>
-            <p className="mt-2 text-sm text-neutral-400">
-              Get your music on every major platform
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: S.textMuted }}>
+              Your music, your business, and sidestage-1 in one free studio.
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-4">
+        <form onSubmit={handleSignup} method="post" className="space-y-4">
           <Input
             id="artistName"
             name="name"
             label="Artist Name"
+            appearance="studio"
             value={artistName}
             onChange={(e) => setArtistName(e.target.value)}
             placeholder="Your artist name"
@@ -113,6 +124,7 @@ export default function SignupPage() {
             name="email"
             label="Email"
             type="email"
+            appearance="studio"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
@@ -125,6 +137,7 @@ export default function SignupPage() {
             name="password"
             label="Password"
             type="password"
+            appearance="studio"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
@@ -138,6 +151,7 @@ export default function SignupPage() {
             name="confirm-password"
             label="Confirm Password"
             type="password"
+            appearance="studio"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Re-enter your password"
@@ -147,15 +161,24 @@ export default function SignupPage() {
           />
 
           {error && (
-            <p className="text-sm text-red-400">{error}</p>
+            <p
+              className="rounded-lg px-3 py-2 text-sm"
+              style={{ color: S.error, background: S.errorBg }}
+            >
+              {error}
+            </p>
           )}
 
-          <Button type="submit" loading={loading} className="w-full">
+          <Button
+            type="submit"
+            variant="studioAccent"
+            loading={loading}
+            className="w-full"
+          >
             Create account
           </Button>
         </form>
-
       </div>
-    </div>
+    </AuthStudioShell>
   );
 }

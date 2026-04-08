@@ -18,6 +18,9 @@ import {
   splitCollabTokens,
 } from "@/lib/crm-collab-tokens";
 import { downloadCsv, getCell, parseCsvRecords } from "@/lib/utils/csv-io";
+import { StudioMicroappSkeletonListRowsEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
+import type { StudioCachedCrmCollab } from "@/contexts/studio-microapp-session-cache";
+import { useStudioMicroappSessionCacheOptional } from "@/contexts/studio-microapp-session-cache";
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -66,14 +69,6 @@ function initialCrmStack(initialContactId?: string | null): {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────
-
-function Spinner() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 48 }}>
-      <div className="animate-spin" style={{ width: 22, height: 22, border: `2px solid ${S.border}`, borderTopColor: S.accent, borderRadius: "50%" }} />
-    </div>
-  );
-}
 
 function IoBanner({ msg }: { msg: { kind: "success" | "error"; text: string } | null }) {
   if (!msg) return null;
@@ -211,9 +206,22 @@ export function StudioCrmWindow({
     setDetailTitle(t.length > 28 ? `${t.slice(0, 26)}…` : t);
   }, []);
 
-  const [contacts, setContacts] = useState<CrmContact[]>([]);
-  const [collabsByContactId, setCollabsByContactId] = useState<Record<string, ContactCollabChip[]>>({});
-  const [loading, setLoading] = useState(true);
+  const sessionCache = useStudioMicroappSessionCacheOptional();
+  const [contacts, setContacts] = useState<CrmContact[]>(
+    () => sessionCache?.takeCrm()?.contacts ?? []
+  );
+  const [collabsByContactId, setCollabsByContactId] = useState<
+    Record<string, ContactCollabChip[]>
+  >(
+    () =>
+      (sessionCache?.takeCrm()?.collabsByContactId ?? {}) as Record<
+        string,
+        ContactCollabChip[]
+      >
+  );
+  const [loading, setLoading] = useState(
+    () => (sessionCache ? sessionCache.takeCrm() === null : true)
+  );
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [ioMessage, setIoMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
@@ -246,17 +254,24 @@ export function StudioCrmWindow({
       }
     }
     setCollabsByContactId(byContact);
-  }, []);
+    sessionCache?.putCrm(
+      list,
+      byContact as Record<string, StudioCachedCrmCollab[]>
+    );
+  }, [sessionCache]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      if (sessionCache ? sessionCache.takeCrm() === null : true)
+        setLoading(true);
       await loadContacts();
       if (!cancelled) setLoading(false);
     })();
-    return () => { cancelled = true; };
-  }, [loadContacts]);
+    return () => {
+      cancelled = true;
+    };
+  }, [loadContacts, sessionCache]);
 
   /** From stack “new” screen: open detail without leaving “new” in history. */
   const handleNewContactCreated = useCallback(
@@ -438,7 +453,7 @@ export function StudioCrmWindow({
           <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
             <IoBanner msg={ioMessage} />
             {loading ? (
-              <Spinner />
+              <StudioMicroappSkeletonListRowsEmbedded rows={7} />
             ) : contacts.length === 0 ? (
               <div
                 style={{

@@ -18,6 +18,8 @@ import type {
 import { S } from "@/components/studio/ui/s";
 import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
 import { StudioFeedbackDetailPanel } from "@/components/studio/windows/StudioFeedbackDetailPanel";
+import { StudioMicroappSkeletonListRowsEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
+import { useStudioMicroappSessionCacheOptional } from "@/contexts/studio-microapp-session-cache";
 
 type LinkRow = FeedbackVersionLink & {
   catalog_song_versions: CatalogSongVersion & {
@@ -54,30 +56,6 @@ function initialStack(
   return { past: [], current: { type: "list" }, future: [] };
 }
 
-function Spinner() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 48,
-      }}
-    >
-      <div
-        className="animate-spin"
-        style={{
-          width: 22,
-          height: 22,
-          border: `2px solid ${S.border}`,
-          borderTopColor: S.accent,
-          borderRadius: "50%",
-        }}
-      />
-    </div>
-  );
-}
-
 const DETAIL_FALLBACK_TITLE = "Notes";
 
 export function StudioFeedbackWindow({
@@ -111,8 +89,13 @@ export function StudioFeedbackWindow({
     setDetailTitle(null);
   }, [current]);
 
-  const [rows, setRows] = useState<RowUi[]>([]);
-  const [loading, setLoading] = useState(true);
+  const sessionCache = useStudioMicroappSessionCacheOptional();
+  const [rows, setRows] = useState<RowUi[]>(
+    () => (sessionCache?.takeFeedback() as RowUi[] | undefined) ?? []
+  );
+  const [loading, setLoading] = useState(
+    () => (sessionCache ? sessionCache.takeFeedback() === null : true)
+  );
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -160,19 +143,21 @@ export function StudioFeedbackWindow({
       })
     );
     setRows(counts);
-  }, []);
+    sessionCache?.putFeedback(counts);
+  }, [sessionCache]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      if (sessionCache ? sessionCache.takeFeedback() === null : true)
+        setLoading(true);
       await load();
       if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, sessionCache]);
 
   const goToDetail = useCallback((versionId: string) => {
     setDetailTitle(null);
@@ -274,7 +259,7 @@ export function StudioFeedbackWindow({
 
           <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
             {loading ? (
-              <Spinner />
+              <StudioMicroappSkeletonListRowsEmbedded rows={6} />
             ) : rows.length === 0 ? (
               <div
                 style={{

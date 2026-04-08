@@ -47,14 +47,28 @@ export async function updateSession(request: NextRequest) {
   if (!user && isDashboardPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
+    const redirectRes = NextResponse.redirect(url);
+    redirectRes.headers.set(
+      "Accept-CH",
+      "Sec-CH-UA-Mobile, Sec-CH-Viewport-Width"
+    );
+    return redirectRes;
   }
 
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/studio";
-    return NextResponse.redirect(url);
+    const redirectRes = NextResponse.redirect(url);
+    redirectRes.headers.set(
+      "Accept-CH",
+      "Sec-CH-UA-Mobile, Sec-CH-Viewport-Width"
+    );
+    return redirectRes;
   }
 
+  supabaseResponse.headers.set(
+    "Accept-CH",
+    "Sec-CH-UA-Mobile, Sec-CH-Viewport-Width"
+  );
   return supabaseResponse;
 }

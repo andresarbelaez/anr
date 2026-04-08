@@ -46,6 +46,11 @@ type Props = {
    * (new user `playCatalogVersion` vs rebounding the same `playRequestId` after remount).
    */
   libraryAutoplayGate?: (playRequestId: number) => boolean;
+  /**
+   * `embedded` only: bar attaches with `border-t` at the bottom of the micro-app (default), or `border-b` at the top
+   * (e.g. mobile Library so the FAB does not cover the player).
+   */
+  embeddedPlacement?: "bottom" | "top";
 };
 
 export const MicroappAudioPlayerBar = forwardRef<
@@ -63,6 +68,7 @@ export const MicroappAudioPlayerBar = forwardRef<
     onPlaybackError,
     autoPlayOnNewSource = true,
     libraryAutoplayGate,
+    embeddedPlacement = "bottom",
   },
   ref
 ) {
@@ -207,10 +213,15 @@ export const MicroappAudioPlayerBar = forwardRef<
           "fixed inset-x-0 bottom-0 z-20 border-t border-neutral-800 bg-neutral-950/95 px-4 py-3 backdrop-blur-md",
           "supports-[backdrop-filter]:bg-neutral-950/80"
         )
-      : cn(
-          "shrink-0 border-t border-neutral-800 bg-neutral-950/95 px-4 py-3 backdrop-blur-md",
-          "supports-[backdrop-filter]:bg-neutral-950/80"
-        );
+      : embeddedPlacement === "top"
+        ? cn(
+            "shrink-0 border-b border-neutral-800 bg-neutral-950/95 px-4 py-3 backdrop-blur-md",
+            "supports-[backdrop-filter]:bg-neutral-950/80"
+          )
+        : cn(
+            "shrink-0 border-t border-neutral-800 bg-neutral-950/95 px-4 py-3 backdrop-blur-md",
+            "supports-[backdrop-filter]:bg-neutral-950/80"
+          );
 
   return (
     <div className={shell} role="region" aria-label={ariaLabel}>

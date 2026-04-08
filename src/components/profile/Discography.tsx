@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Music, Calendar } from "lucide-react";
 import type { Release } from "@/lib/supabase/types";
 
@@ -12,12 +13,14 @@ export function Discography({ releases }: { releases: Release[] }) {
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
       {releases.map((release) => (
         <div key={release.id} className="group space-y-2">
-          <div className="aspect-square overflow-hidden rounded-lg bg-neutral-800">
+          <div className="relative aspect-square overflow-hidden rounded-lg bg-neutral-800">
             {release.cover_art_url ? (
-              <img
+              <Image
                 src={release.cover_art_url}
                 alt={release.title}
-                className="h-full w-full object-cover transition group-hover:scale-105"
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover transition group-hover:scale-105"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">

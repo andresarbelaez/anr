@@ -2,8 +2,22 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { ArrowLeft } from "lucide-react";
-import { CrmNewContactForm } from "@/components/crm/CrmNewContactForm";
+
+const CrmNewContactForm = dynamic(
+  () =>
+    import("@/components/crm/CrmNewContactForm").then((mod) => ({
+      default: mod.CrmNewContactForm,
+    })),
+  {
+    loading: () => (
+      <div className="flex min-h-[30vh] items-center justify-center text-sm text-neutral-500">
+        Loading…
+      </div>
+    ),
+  }
+);
 
 export default function CrmNewPage() {
   const router = useRouter();

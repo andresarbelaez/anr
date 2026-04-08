@@ -58,7 +58,7 @@ export default async function ArtistProfilePage({ params }: Props) {
         </div>
 
         <footer className="mt-20 border-t border-neutral-900 pt-6 text-center text-xs text-neutral-600">
-          Distributed for free with{" "}
+          Hosted with{" "}
           <a href="/" className="underline hover:text-neutral-400">
             sidestage
           </a>

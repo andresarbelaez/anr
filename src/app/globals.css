@@ -43,3 +43,49 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Studio micro-app Suspense skeletons — warm parchment sheen */
+@keyframes studio-microapp-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+.studio-microapp-shimmer-bone {
+  position: relative;
+  overflow: hidden;
+  background-color: #e8d4bb;
+}
+
+.studio-microapp-shimmer-bone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 55%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 250, 242, 0.82),
+    transparent
+  );
+  animation: studio-microapp-shimmer 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-microapp-shimmer-bone::after {
+    animation: none;
+  }
+}
+
+.studio-microapp-shimmer-sheen-inline {
+  animation: studio-microapp-shimmer 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-microapp-shimmer-sheen-inline {
+    animation: none;
+  }
+}

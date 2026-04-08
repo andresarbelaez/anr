@@ -1,7 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { NewReleaseWizard } from "@/components/releases/NewReleaseWizard";
+import dynamic from "next/dynamic";
+
+const NewReleaseWizard = dynamic(
+  () =>
+    import("@/components/releases/NewReleaseWizard").then((mod) => ({
+      default: mod.NewReleaseWizard,
+    })),
+  {
+    loading: () => (
+      <div className="flex min-h-[30vh] items-center justify-center text-sm text-neutral-500">
+        Loading…
+      </div>
+    ),
+  }
+);
 
 export default function NewReleasePage() {
   const router = useRouter();

@@ -1,6 +1,7 @@
 "use client";
 
 import { AssistantClient } from "@/components/assistant/AssistantClient";
+import { StudioMicroappSkeletonAssistantEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
 
 /**
  * CSS overrides that remap AssistantClient's dark Tailwind palette → warm
@@ -64,7 +65,12 @@ export function StudioAssistantWindow() {
       }}
     >
       <style>{STUDIO_CHAT_CSS}</style>
-      <AssistantClient className="flex h-full" />
+      <AssistantClient
+        className="flex h-full"
+        conversationLoadingFallback={
+          <StudioMicroappSkeletonAssistantEmbedded />
+        }
+      />
     </div>
   );
 }

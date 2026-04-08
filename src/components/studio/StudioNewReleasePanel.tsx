@@ -58,8 +58,8 @@ export function StudioNewReleasePanel({
             lineHeight: 1.45,
           }}
         >
-          Add metadata, upload tracks and optional cover art, then submit for
-          distribution.
+          Add metadata, upload tracks and optional cover art, then submit your
+          release when you are ready.
         </p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5">

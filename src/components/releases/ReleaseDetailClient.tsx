@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Music, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -102,12 +103,15 @@ export function ReleaseDetailClient({
       )}
 
       <div className="flex gap-6">
-        <div className="h-48 w-48 flex-shrink-0 overflow-hidden rounded-xl bg-neutral-800">
+        <div className="relative h-48 w-48 flex-shrink-0 overflow-hidden rounded-xl bg-neutral-800">
           {release.cover_art_url ? (
-            <img
+            <Image
               src={release.cover_art_url}
               alt={release.title}
-              className="h-full w-full object-cover"
+              fill
+              sizes="192px"
+              priority={embedStudio}
+              className="object-cover"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">

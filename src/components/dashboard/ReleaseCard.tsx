@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Music, Calendar } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
@@ -12,11 +13,14 @@ export function ReleaseCard({ release }: { release: Release }) {
       className="group block rounded-xl border border-neutral-800 bg-neutral-900/50 p-4 transition hover:border-neutral-600 hover:bg-neutral-900"
     >
       <div className="flex gap-4">
-        <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-800">
+        <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-800">
           {release.cover_art_url ? (
-            <img
+            <Image
               src={release.cover_art_url}
               alt={release.title}
+              width={160}
+              height={160}
+              sizes="80px"
               className="h-full w-full object-cover"
             />
           ) : (

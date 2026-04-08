@@ -64,7 +64,7 @@ export async function POST(request: Request) {
             unit_amount: unitAmountCents,
             product_data: {
               name: "Donation to sidestage",
-              description: "Support free distribution for independent artists.",
+              description: "Support sidestage and independent artists.",
             },
           },
         },

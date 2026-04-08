@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Image from "next/image";
 import { Music, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Release } from "@/lib/supabase/types";
@@ -15,6 +16,8 @@ import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNe
 import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
 import { StudioReleaseDetailPanel } from "@/components/studio/windows/StudioReleaseDetailPanel";
 import { StudioNewReleasePanel } from "@/components/studio/StudioNewReleasePanel";
+import { StudioMicroappSkeletonListRowsEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
+import { useStudioMicroappSessionCacheOptional } from "@/contexts/studio-microapp-session-cache";
 
 type StackEntry =
   | { type: "list" }
@@ -34,30 +37,6 @@ function initialStack(initialReleaseId?: string | null): {
     };
   }
   return { past: [], current: { type: "list" }, future: [] };
-}
-
-function Spinner() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 48,
-      }}
-    >
-      <div
-        className="animate-spin"
-        style={{
-          width: 22,
-          height: 22,
-          border: `2px solid ${S.border}`,
-          borderTopColor: S.accent,
-          borderRadius: "50%",
-        }}
-      />
-    </div>
-  );
 }
 
 function StatusPip({ status }: { status: string }) {
@@ -117,8 +96,13 @@ export function StudioReleasesWindow({
     setDetailTitle(null);
   }, [current]);
 
-  const [releases, setReleases] = useState<Release[]>([]);
-  const [loading, setLoading] = useState(true);
+  const sessionCache = useStudioMicroappSessionCacheOptional();
+  const [releases, setReleases] = useState<Release[]>(
+    () => sessionCache?.takeReleases() ?? []
+  );
+  const [loading, setLoading] = useState(
+    () => (sessionCache ? sessionCache.takeReleases() === null : true)
+  );
   const [newWizardKey, setNewWizardKey] = useState(0);
   const [wizardBusy, setWizardBusy] = useState(false);
 
@@ -128,20 +112,23 @@ export function StudioReleasesWindow({
       .from("releases")
       .select("*")
       .order("created_at", { ascending: false });
-    setReleases((data as Release[]) || []);
-  }, []);
+    const list = (data as Release[]) || [];
+    setReleases(list);
+    sessionCache?.putReleases(list);
+  }, [sessionCache]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      if (sessionCache ? sessionCache.takeReleases() === null : true)
+        setLoading(true);
       await loadReleases();
       if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [loadReleases]);
+  }, [loadReleases, sessionCache]);
 
   const goToDetail = useCallback(
     (releaseId: string) => {
@@ -267,7 +254,7 @@ export function StudioReleasesWindow({
 
           <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
             {loading ? (
-              <Spinner />
+              <StudioMicroappSkeletonListRowsEmbedded rows={6} />
             ) : releases.length === 0 ? (
               <div
                 style={{
@@ -311,8 +298,8 @@ export function StudioReleasesWindow({
                     lineHeight: 1.6,
                   }}
                 >
-                  Upload your first track and distribute it to Spotify, Apple
-                  Music, and 150+ platforms.
+                  Build your first release—tracks, art, and metadata—in one
+                  place.
                 </p>
                 <div style={{ marginTop: 4 }}>
                   <StudioMicroappNewButton label="New release" onClick={goToNew} />
@@ -378,6 +365,7 @@ function ReleaseRow({
     >
       <div
         style={{
+          position: "relative",
           width: 60,
           height: 60,
           flexShrink: 0,
@@ -391,10 +379,12 @@ function ReleaseRow({
         }}
       >
         {r.cover_art_url ? (
-          <img
+          <Image
             src={r.cover_art_url}
             alt={r.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            fill
+            sizes="60px"
+            className="object-cover"
           />
         ) : (
           <Music size={20} color={S.textFaint} />

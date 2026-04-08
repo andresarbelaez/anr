@@ -342,7 +342,7 @@ export function NewReleaseWizard({
           ) : (
             <Button onClick={() => void handleSubmit()} loading={submitting}>
               <Send className="mr-2 h-4 w-4" />
-              Submit for distribution
+              Submit release
             </Button>
           )}
         </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import { S } from "@/components/studio/ui/s";
 
 export function AuthTabs() {
   const pathname = usePathname();
@@ -10,15 +11,26 @@ export function AuthTabs() {
   const isSignup = pathname === "/signup";
 
   return (
-    <div className="flex rounded-lg border border-neutral-800 bg-neutral-900/50 p-1">
+    <div
+      className="flex rounded-lg border p-1"
+      style={{
+        borderColor: S.border,
+        background: S.surfaceAlt,
+      }}
+    >
       <Link
         href="/login"
         className={cn(
           "flex-1 rounded-md px-4 py-2 text-center text-sm font-medium transition",
           isLogin
-            ? "bg-white text-black"
-            : "text-neutral-400 hover:text-white"
+            ? "text-white shadow-sm"
+            : "text-[#8a6040] hover:text-[#5a3518]"
         )}
+        style={
+          isLogin
+            ? { background: S.accent, color: S.accentText }
+            : undefined
+        }
       >
         Sign in
       </Link>
@@ -27,9 +39,14 @@ export function AuthTabs() {
         className={cn(
           "flex-1 rounded-md px-4 py-2 text-center text-sm font-medium transition",
           isSignup
-            ? "bg-white text-black"
-            : "text-neutral-400 hover:text-white"
+            ? "text-white shadow-sm"
+            : "text-[#8a6040] hover:text-[#5a3518]"
         )}
+        style={
+          isSignup
+            ? { background: S.accent, color: S.accentText }
+            : undefined
+        }
       >
         Sign up
       </Link>

@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, Globe, Heart, Sparkles, ListMusic } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  Heart,
+  ListMusic,
+  MessageSquareText,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { S } from "@/components/studio/ui/s";
 
@@ -51,17 +59,17 @@ export default function HomePage() {
           className="text-4xl font-bold leading-tight tracking-tight md:text-6xl"
           style={{ color: S.textPrimary }}
         >
-          The label&rsquo;s tools.
+          You bring the music.
           <br />
-          <span style={{ color: S.accent }}>Without the label.</span>
+          <span style={{ color: S.accent }}>sidestage handles the rest.</span>
         </h1>
 
         <p
           className="mx-auto mt-6 max-w-lg text-lg leading-relaxed"
           style={{ color: S.textMuted }}
         >
-          Distribution, catalog management, royalties, and an AI that knows
-          your work — free for all artists.
+          Catalog, release prep, calendar, CRM, feedback, and sidestage-1 — an
+          AI that knows your work. Free for all artists.
         </p>
 
         <div className="mt-10 flex items-center justify-center gap-4">
@@ -78,28 +86,38 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-6 py-16 md:py-20">
-        <div className="grid gap-6 md:grid-cols-2 md:gap-8">
+      <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid gap-6 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
           {[
             {
-              icon: Globe,
-              title: "Distribute everywhere",
-              body: "Upload once and reach Spotify, Apple Music, Tidal, and 150+ platforms. We handle formatting, delivery, and DSP compliance.",
+              icon: ListMusic,
+              title: "Library & catalog",
+              body: "Released and unreleased work, versions, and metadata in one private workspace—so masters and drafts are not scattered across folders and threads.",
+            },
+            {
+              icon: Users,
+              title: "CRM for your network",
+              body: "Contacts, roles, last touch, and collaborations tied to releases or library songs—the people around your career in one place.",
+            },
+            {
+              icon: CalendarDays,
+              title: "Release calendar",
+              body: "Plan drops, promo, sessions, and deadlines beside your catalog so dates are not orphaned in another app.",
+            },
+            {
+              icon: MessageSquareText,
+              title: "Feedback & listen links",
+              body: "Private listen links, timestamped comments, and notes anchored to the right version—demos without the group-chat sprawl.",
             },
             {
               icon: Sparkles,
-              title: "sidestage-1, your music manager",
-              body: "An AI that knows your catalog, contacts, and releases. Ask it to pull a share link, run your CRM, or surface feedback — it does the work.",
-            },
-            {
-              icon: ListMusic,
-              title: "Catalog & feedback",
-              body: "Keep your released and unreleased work organized in one place. Share demos with a private listen link and get timestamped comments back.",
+              title: "sidestage-1",
+              body: "An AI that knows your catalog, contacts, and releases. Draft outreach, pull links, or run your CRM from plain language.",
             },
             {
               icon: Heart,
-              title: "Kept free by the community",
-              body: "sidestage runs on donations from artists and fans who believe music distribution shouldn\u2019t cost money. No commission. Ever.",
+              title: "Free to use",
+              body: "Core tools stay free. sidestage is sustained by donations from artists and fans—no commission, no hidden fees.",
             },
           ].map(({ icon: Icon, title, body }) => (
             <div

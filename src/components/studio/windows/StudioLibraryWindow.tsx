@@ -21,6 +21,9 @@ import { CatalogVersionDeleteModal } from "@/components/catalog/CatalogVersionDe
 import { StudioNewCatalogSongModal } from "@/components/studio/StudioNewCatalogSongModal";
 import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
 import { Button } from "@/components/ui/button";
+import { useStudioMobileLayout } from "@/lib/studio/use-studio-mobile-layout";
+import { StudioMicroappSkeletonListRowsEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
+import { useStudioMicroappSessionCacheOptional } from "@/contexts/studio-microapp-session-cache";
 
 type SongRow = CatalogSong & { releaseTitle: string | null };
 
@@ -41,24 +44,6 @@ function initialLibStack(initialSongId?: string | null): {
     };
   }
   return { past: [], current: { type: "list" }, future: [] };
-}
-
-// ── Spinner ───────────────────────────────────────────────────────────────
-
-function Spinner() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 48 }}>
-      <div
-        className="animate-spin"
-        style={{
-          width: 22, height: 22,
-          border: `2px solid ${S.border}`,
-          borderTopColor: S.accent,
-          borderRadius: "50%",
-        }}
-      />
-    </div>
-  );
 }
 
 // ── IO banner ─────────────────────────────────────────────────────────────
@@ -115,9 +100,16 @@ export function StudioLibraryWindow({
     setDetailTitle(null);
   }, [current]);
 
-  const [songs, setSongs] = useState<SongRow[]>([]);
-  const [versionsBySong, setVersionsBySong] = useState<Record<string, CatalogSongVersion[]>>({});
-  const [loading, setLoading] = useState(true);
+  const sessionCache = useStudioMicroappSessionCacheOptional();
+  const [songs, setSongs] = useState<SongRow[]>(
+    () => sessionCache?.takeLibrary()?.songs ?? []
+  );
+  const [versionsBySong, setVersionsBySong] = useState<
+    Record<string, CatalogSongVersion[]>
+  >(() => sessionCache?.takeLibrary()?.versionsBySong ?? {});
+  const [loading, setLoading] = useState(
+    () => (sessionCache ? sessionCache.takeLibrary() === null : true)
+  );
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [ioMessage, setIoMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
@@ -198,10 +190,19 @@ export function StudioLibraryWindow({
     shouldAutoplayStudioLibraryEmbed,
   } = useCatalogPlayer();
 
+  const layoutMobile = useStudioMobileLayout();
+  /** Bottom bar only on desktop shell; omit while layout is still `undefined` (no double player). */
+  const showBottomLibraryPlayer = layoutMobile === false;
+
   const loadCatalog = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSongs([]); setVersionsBySong({}); return; }
+    if (!user) {
+      setSongs([]);
+      setVersionsBySong({});
+      sessionCache?.putLibrary([], {});
+      return;
+    }
 
     const { data: songRows } = await supabase
       .from("catalog_songs")
@@ -238,7 +239,8 @@ export function StudioLibraryWindow({
 
     setSongs(withTitles);
     setVersionsBySong(versMap);
-  }, []);
+    sessionCache?.putLibrary(withTitles, versMap);
+  }, [sessionCache]);
 
   const handleNewSongCreated = useCallback(
     async (songId: string) => {
@@ -313,12 +315,15 @@ export function StudioLibraryWindow({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      if (sessionCache ? sessionCache.takeLibrary() === null : true)
+        setLoading(true);
       await loadCatalog();
       if (!cancelled) setLoading(false);
     })();
-    return () => { cancelled = true; };
-  }, [loadCatalog]);
+    return () => {
+      cancelled = true;
+    };
+  }, [loadCatalog, sessionCache]);
 
   // ── CSV export ──────────────────────────────────────────────────────────
 
@@ -474,7 +479,7 @@ export function StudioLibraryWindow({
             <IoBanner msg={ioMessage} />
 
             {loading ? (
-              <Spinner />
+              <StudioMicroappSkeletonListRowsEmbedded rows={7} />
             ) : songs.length === 0 ? (
               <div
                 style={{
@@ -566,16 +571,19 @@ export function StudioLibraryWindow({
         />
       )}
 
-      <MicroappAudioPlayerBar
-        variant="embedded"
-        track={activeTrack}
-        loading={playerLoading}
-        error={playerError}
-        onClear={clearCatalogPlayer}
-        autoPlayOnNewSource={false}
-        libraryAutoplayGate={shouldAutoplayStudioLibraryEmbed}
-        ariaLabel="Library audio player"
-      />
+      {showBottomLibraryPlayer && (
+        <MicroappAudioPlayerBar
+          variant="embedded"
+          embeddedPlacement="bottom"
+          track={activeTrack}
+          loading={playerLoading}
+          error={playerError}
+          onClear={clearCatalogPlayer}
+          autoPlayOnNewSource={false}
+          libraryAutoplayGate={shouldAutoplayStudioLibraryEmbed}
+          ariaLabel="Library audio player"
+        />
+      )}
 
       <CatalogVersionDeleteModal
         open={versionDeleteTarget !== null}

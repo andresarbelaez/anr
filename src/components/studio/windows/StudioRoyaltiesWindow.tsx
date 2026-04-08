@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { Royalty, Release } from "@/lib/supabase/types";
 import { S } from "@/components/studio/ui/s";
 import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
+import { StudioMicroappSkeletonRoyaltiesEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
+import { useStudioMicroappSessionCacheOptional } from "@/contexts/studio-microapp-session-cache";
 
 interface AggregatedDsp {
   dsp: string;
@@ -59,30 +61,6 @@ function aggregateByDsp(rows: Royalty[]): AggregatedDsp[] {
       return acc;
     }, {})
   ).sort((a, b) => b.earnings - a.earnings);
-}
-
-function Spinner() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 48,
-      }}
-    >
-      <div
-        className="animate-spin"
-        style={{
-          width: 22,
-          height: 22,
-          border: `2px solid ${S.border}`,
-          borderTopColor: S.accent,
-          borderRadius: "50%",
-        }}
-      />
-    </div>
-  );
 }
 
 function StatCard({
@@ -223,9 +201,16 @@ export function StudioRoyaltiesWindow({
     });
   }, [chrome, canBack, canForward, goBack, goForward]);
 
-  const [royalties, setRoyalties] = useState<Royalty[]>([]);
-  const [releases, setReleases] = useState<Release[]>([]);
-  const [loading, setLoading] = useState(true);
+  const sessionCache = useStudioMicroappSessionCacheOptional();
+  const [royalties, setRoyalties] = useState<Royalty[]>(
+    () => sessionCache?.takeRoyalties()?.royalties ?? []
+  );
+  const [releases, setReleases] = useState<Release[]>(
+    () => sessionCache?.takeRoyalties()?.releases ?? []
+  );
+  const [loading, setLoading] = useState(
+    () => (sessionCache ? sessionCache.takeRoyalties() === null : true)
+  );
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -233,21 +218,25 @@ export function StudioRoyaltiesWindow({
       supabase.from("releases").select("*").eq("status", "live"),
       supabase.from("royalties").select("*").order("created_at", { ascending: false }),
     ]);
-    setReleases((rels as Release[]) || []);
-    setRoyalties((roys as Royalty[]) || []);
-  }, []);
+    const relList = (rels as Release[]) || [];
+    const royList = (roys as Royalty[]) || [];
+    setReleases(relList);
+    setRoyalties(royList);
+    sessionCache?.putRoyalties(relList, royList);
+  }, [sessionCache]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      if (sessionCache ? sessionCache.takeRoyalties() === null : true)
+        setLoading(true);
       await load();
       if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, sessionCache]);
 
   const aggregatedByDsp = useMemo(
     () => aggregateByDsp(royalties),
@@ -330,7 +319,7 @@ export function StudioRoyaltiesWindow({
 
           <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
             {loading ? (
-              <Spinner />
+              <StudioMicroappSkeletonRoyaltiesEmbedded />
             ) : (
               <>
                 <div

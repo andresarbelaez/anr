@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, type CSSProperties, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
+import { useStudioObjectMotionLite } from "@/lib/studio/use-studio-object-motion-lite";
+import { prefetchStudioMicroapp } from "@/lib/studio/prefetch-studio-microapp";
 
 interface Props {
   id: string;
@@ -23,6 +25,7 @@ export function StudioObject({
   idle = "none",
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const motionLite = useStudioObjectMotionLite();
 
   function handleClick() {
     if (ref.current) onOpen(id, ref.current);
@@ -32,28 +35,42 @@ export function StudioObject({
     <div ref={ref} style={{ position: "absolute", ...style }}>
       <button
         type="button"
+        onPointerDown={() => prefetchStudioMicroapp(id)}
         onClick={handleClick}
         aria-label={label}
         className="block cursor-pointer border-none bg-transparent p-0 focus:outline-none"
       >
-        <motion.div
+        <m.div
           className="group relative flex flex-col items-center cursor-pointer select-none"
-          animate={idle === "breathe" ? { y: [0, -5, 0] } : undefined}
+          animate={
+            !motionLite && idle === "breathe"
+              ? { y: [0, -5, 0] }
+              : undefined
+          }
           transition={
-            idle === "breathe"
+            !motionLite && idle === "breathe"
               ? { duration: 2.4, repeat: Infinity, ease: "easeInOut" }
               : undefined
           }
-          whileHover={{
-            scale: 1.1,
-            filter: isOpen
-              ? "drop-shadow(0 0 10px rgba(255,200,80,1)) drop-shadow(0 0 24px rgba(255,200,80,0.5))"
-              : "drop-shadow(0 0 8px rgba(255,200,80,0.9)) drop-shadow(0 0 20px rgba(255,200,80,0.4))",
-          }}
-          whileTap={{ scale: 0.96 }}
+          whileHover={
+            motionLite
+              ? undefined
+              : {
+                  scale: 1.1,
+                  filter: isOpen
+                    ? "drop-shadow(0 0 10px rgba(255,200,80,1)) drop-shadow(0 0 24px rgba(255,200,80,0.5))"
+                    : "drop-shadow(0 0 8px rgba(255,200,80,0.9)) drop-shadow(0 0 20px rgba(255,200,80,0.4))",
+                }
+          }
+          whileTap={{ scale: motionLite ? 0.98 : 0.96 }}
           style={
             isOpen
-              ? { filter: "drop-shadow(0 0 6px rgba(255,200,80,0.65))" }
+              ? motionLite
+                ? {
+                    boxShadow:
+                      "0 0 0 2px rgba(255,200,80,0.45), 0 4px 14px rgba(255,200,64,0.2)",
+                  }
+                : { filter: "drop-shadow(0 0 6px rgba(255,200,80,0.65))" }
               : undefined
           }
         >
@@ -78,7 +95,7 @@ export function StudioObject({
               style={{ boxShadow: "0 0 4px rgba(255,200,64,0.9)" }}
             />
           )}
-        </motion.div>
+        </m.div>
       </button>
     </div>
   );

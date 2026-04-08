@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Loader2, Paperclip, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
@@ -47,7 +53,14 @@ function rowFromApi(r: Record<string, unknown>): MsgRow | null {
   };
 }
 
-export function AssistantClient({ className }: { className?: string }) {
+export function AssistantClient({
+  className,
+  conversationLoadingFallback,
+}: {
+  className?: string;
+  /** When set (e.g. studio micro-app), replaces the default spinner while the thread loads. */
+  conversationLoadingFallback?: ReactNode;
+} = {}) {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MsgRow[]>([]);
   const [input, setInput] = useState("");
@@ -338,65 +351,76 @@ export function AssistantClient({ className }: { className?: string }) {
           <h1 className="text-lg font-semibold text-white">Assistant</h1>
         </header>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 font-reading">
-          {loadingConversation && (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
-            </div>
-          )}
-          {!loadingConversation && !activeThreadId && (
-            <p className="text-sm text-neutral-500">
-              Could not open your assistant conversation.
-            </p>
-          )}
-          {visibleMessages.map((m) => (
-            <div
-              key={m.id}
-              className={cn(
-                "flex",
-                m.role === "user" ? "justify-end" : "justify-start"
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 font-reading">
+          {loadingConversation ? (
+            conversationLoadingFallback ? (
+              <div className="flex min-h-[min(45vh,380px)] w-full min-w-0 flex-1 flex-col">
+                {conversationLoadingFallback}
+              </div>
+            ) : (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
+              </div>
+            )
+          ) : (
+            <div className="flex flex-1 flex-col space-y-4">
+              {!activeThreadId && (
+                <p className="text-sm text-neutral-500">
+                  Could not open your assistant conversation.
+                </p>
               )}
-            >
-              <div
-                className={cn(
-                  "max-w-[85%] rounded-2xl px-4 py-2 text-sm",
-                  m.role === "user"
-                    ? "bg-white text-black"
-                    : "border border-neutral-800 bg-neutral-900 text-neutral-100"
-                )}
-              >
-                {m.role === "assistant" ? (
-                  m.content ? (
-                    <AssistantMarkdown source={m.content} />
-                  ) : (
-                    <p className="text-neutral-500">—</p>
-                  )
-                ) : (
-                  <p className="whitespace-pre-wrap">{m.content || "—"}</p>
-                )}
-                {m.role === "user" &&
-                  Array.isArray(m.attachments) &&
-                  m.attachments.length > 0 && (
-                    <p className="mt-1 text-xs opacity-70">
-                      {(m.attachments as { name?: string }[])
-                        .map((a) => a.name || "file")
-                        .join(", ")}
-                    </p>
+              {visibleMessages.map((m) => (
+                <div
+                  key={m.id}
+                  className={cn(
+                    "flex",
+                    m.role === "user" ? "justify-end" : "justify-start"
                   )}
-              </div>
+                >
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-4 py-2 text-sm",
+                      m.role === "user"
+                        ? "bg-white text-black"
+                        : "border border-neutral-800 bg-neutral-900 text-neutral-100"
+                    )}
+                  >
+                    {m.role === "assistant" ? (
+                      m.content ? (
+                        <AssistantMarkdown source={m.content} />
+                      ) : (
+                        <p className="text-neutral-500">—</p>
+                      )
+                    ) : (
+                      <p className="whitespace-pre-wrap">{m.content || "—"}</p>
+                    )}
+                    {m.role === "user" &&
+                      Array.isArray(m.attachments) &&
+                      m.attachments.length > 0 && (
+                        <p className="mt-1 text-xs opacity-70">
+                          {(m.attachments as { name?: string }[])
+                            .map((a) => a.name || "file")
+                            .join(", ")}
+                        </p>
+                      )}
+                  </div>
+                </div>
+              ))}
+              {toolStatus && (
+                <p className="text-center text-xs text-neutral-500">
+                  {toolStatus}
+                </p>
+              )}
+              {streaming && (
+                <div className="flex justify-start">
+                  <div className="max-w-[85%] rounded-2xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-neutral-100">
+                    <AssistantMarkdown source={streaming} />
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef} />
             </div>
-          ))}
-          {toolStatus && (
-            <p className="text-center text-xs text-neutral-500">{toolStatus}</p>
           )}
-          {streaming && (
-            <div className="flex justify-start">
-              <div className="max-w-[85%] rounded-2xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-neutral-100">
-                <AssistantMarkdown source={streaming} />
-              </div>
-            </div>
-          )}
-          <div ref={bottomRef} />
         </div>
 
         {error && (

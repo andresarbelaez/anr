@@ -23,12 +23,30 @@ import {
   toDateStr,
   weekSunday,
 } from "@/lib/utils/calendar-recurrence";
+import { StudioMicroappSkeletonCalendarGridEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
+import {
+  studioCalendarSessionKey,
+  useStudioMicroappSessionCacheOptional,
+} from "@/contexts/studio-microapp-session-cache";
 import { MonthView } from "./MonthView";
 import { WeekView } from "./WeekView";
 import { EventModal, formToEventPayload, type EventFormData } from "./EventModal";
 import { EventDetailModal, formToEventPayload as detailFormToPayload } from "./EventDetailModal";
 
 type CalView = "month" | "week";
+
+function getCalendarDataRange(
+  v: CalView,
+  d: Date
+): { rangeStart: Date; rangeEnd: Date } {
+  if (v === "month") {
+    const rangeStart = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    const rangeEnd = new Date(d.getFullYear(), d.getMonth() + 2, 0);
+    return { rangeStart, rangeEnd };
+  }
+  const ws = weekSunday(d);
+  return { rangeStart: ws, rangeEnd: addDays(ws, 6) };
+}
 
 type CalStackEntry =
   | { type: "grid" }
@@ -81,10 +99,12 @@ export function CalendarClient({
   const stackRef = useRef({ past, currentStack });
   stackRef.current = { past, currentStack };
 
-  const loadData = useCallback(async (rangeStart: Date, rangeEnd: Date) => {
-    setLoading(true);
-    const supabase = createClient();
+  const sessionCache = useStudioMicroappSessionCacheOptional();
 
+  const refetchCalendarData = useCallback(async () => {
+    const { rangeStart, rangeEnd } = getCalendarDataRange(view, currentDate);
+    const key = studioCalendarSessionKey(view, rangeStart, rangeEnd);
+    const supabase = createClient();
     const [evtRes, relRes] = await Promise.all([
       supabase
         .from("calendar_events")
@@ -96,36 +116,38 @@ export function CalendarClient({
         .select("id, title, release_date, status")
         .not("release_date", "is", null),
     ]);
-
-    if (!evtRes.error) setEvents((evtRes.data ?? []) as CalendarEvent[]);
-    if (!relRes.error)
-      setReleases(
-        (relRes.data ?? []) as Array<{
-          id: string;
-          title: string;
-          release_date: string;
-          status: ReleaseStatus;
-        }>
-      );
-    setLoading(false);
-  }, []);
+    const ev = (evtRes.data ?? []) as CalendarEvent[];
+    const rel = (relRes.data ?? []) as Array<{
+      id: string;
+      title: string;
+      release_date: string;
+      status: ReleaseStatus;
+    }>;
+    if (!evtRes.error) setEvents(ev);
+    if (!relRes.error) setReleases(rel);
+    sessionCache?.putCalendar(key, { events: ev, releases: rel });
+  }, [view, currentDate, sessionCache]);
 
   useEffect(() => {
-    const { rangeStart, rangeEnd } = getRange(view, currentDate);
-    void loadData(rangeStart, rangeEnd);
-  }, [view, currentDate, loadData]);
-
-  function getRange(v: CalView, d: Date): { rangeStart: Date; rangeEnd: Date } {
-    if (v === "month") {
-      const rangeStart = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-      const rangeEnd = new Date(d.getFullYear(), d.getMonth() + 2, 0);
-      return { rangeStart, rangeEnd };
+    const { rangeStart, rangeEnd } = getCalendarDataRange(view, currentDate);
+    const key = studioCalendarSessionKey(view, rangeStart, rangeEnd);
+    const snap = sessionCache?.takeCalendar(key);
+    if (snap) {
+      setEvents(snap.events);
+      setReleases(snap.releases);
     }
-    const ws = weekSunday(d);
-    return { rangeStart: ws, rangeEnd: addDays(ws, 6) };
-  }
+    if (!snap) setLoading(true);
+    let cancelled = false;
+    void (async () => {
+      await refetchCalendarData();
+      if (!cancelled) setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view, currentDate, sessionCache, refetchCalendarData]);
 
-  const { rangeStart, rangeEnd } = getRange(view, currentDate);
+  const { rangeStart, rangeEnd } = getCalendarDataRange(view, currentDate);
   const occurrences: CalendarOccurrence[] = [
     ...expandAllEvents(events, rangeStart, rangeEnd),
     ...releases
@@ -317,7 +339,7 @@ export function CalendarClient({
     } else {
       setDetailOccurrence(null);
     }
-    if (!error) void loadData(rangeStart, rangeEnd);
+    if (!error) void refetchCalendarData();
   }
 
   async function handleDetailDelete(scope: RecurringEditScope) {
@@ -344,7 +366,7 @@ export function CalendarClient({
     } else {
       setDetailOccurrence(null);
     }
-    if (!error) void loadData(rangeStart, rangeEnd);
+    if (!error) void refetchCalendarData();
   }
 
   const onDetailClose = useCallback(() => {
@@ -408,7 +430,7 @@ export function CalendarClient({
               <span className="ml-1 text-sm font-semibold text-white">
                 {headerLabel}
               </span>
-              {loading && (
+              {loading && !stackMode && (
                 <span className="text-xs text-neutral-500">loading…</span>
               )}
             </div>
@@ -421,7 +443,9 @@ export function CalendarClient({
           </div>
 
           <div className="min-h-0 flex-1">
-            {view === "month" ? (
+            {loading && stackMode ? (
+              <StudioMicroappSkeletonCalendarGridEmbedded />
+            ) : view === "month" ? (
               <MonthView
                 year={currentDate.getFullYear()}
                 month={currentDate.getMonth()}
@@ -460,7 +484,7 @@ export function CalendarClient({
               setPast([]);
               setFuture([]);
               setCurrentStack({ type: "grid" });
-              void loadData(rangeStart, rangeEnd);
+              void refetchCalendarData();
             }}
             onClose={goBack}
           />
@@ -504,7 +528,7 @@ export function CalendarClient({
                 .from("calendar_events")
                 .insert(formToEventPayload(form, user.id));
               setCreateOpen(false);
-              void loadData(rangeStart, rangeEnd);
+              void refetchCalendarData();
             }}
             onClose={() => setCreateOpen(false)}
           />

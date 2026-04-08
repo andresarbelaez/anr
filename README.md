@@ -1,6 +1,6 @@
-# distro — Free Music Distribution
+# sidestage app
 
-Distribute your music to Spotify, Apple Music, and 150+ streaming platforms for free.
+Free studio for independent artists — catalog, releases, CRM, calendar, feedback, and sidestage-1. Distribution to streaming platforms is **not live yet** (mock adapter until a white-label partner is integrated).
 
 ## Tech Stack
 
