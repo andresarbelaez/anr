@@ -20,6 +20,7 @@ import {
   MutationProposalList,
   type MutationProposalRow,
 } from "./MutationProposalList";
+import { CATALOG_VERSION_FILE_ACCEPT } from "@/lib/utils/catalog-mp3";
 
 type MsgRow = {
   id: string;
@@ -456,7 +457,7 @@ export function AssistantClient({
               ref={fileRef}
               type="file"
               multiple
-              accept="image/jpeg,image/png,image/webp,image/gif,.csv,audio/mpeg,audio/wav,.mp3,.wav"
+              accept={`image/jpeg,image/png,image/webp,image/gif,.csv,${CATALOG_VERSION_FILE_ACCEPT}`}
               className="hidden"
               onChange={(e) => {
                 const list = e.target.files;

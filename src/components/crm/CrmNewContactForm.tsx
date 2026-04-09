@@ -407,6 +407,7 @@ export function CrmNewContactForm({
           {step < CRM_CONTACT_WIZARD_STEPS.length - 1 ? (
             <Button
               type="button"
+              variant="studioMicroappPrimary"
               onClick={handleNext}
               disabled={!canNext() || saving}
             >

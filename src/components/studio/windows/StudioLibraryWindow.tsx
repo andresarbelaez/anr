@@ -1,7 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Play, ListMusic, Download, Upload, Trash2 } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Disc3,
+  ListMusic,
+  Download,
+  Upload,
+  Trash2,
+  Link as LinkIcon,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { CatalogSong, CatalogSongVersion, Release } from "@/lib/supabase/types";
 import { S } from "@/components/studio/ui/s";
@@ -18,13 +28,16 @@ import {
   parseCsvRecords,
 } from "@/lib/utils/csv-io";
 import { CATALOG_MP3_BUCKET } from "@/lib/utils/catalog-mp3";
+import { catalogVersionRowLabel } from "@/lib/utils/catalog-version-display";
 import { CatalogVersionDeleteModal } from "@/components/catalog/CatalogVersionDeleteModal";
+import { CatalogVersionDownloadModal } from "@/components/catalog/CatalogVersionDownloadModal";
 import { StudioNewCatalogSongModal } from "@/components/studio/StudioNewCatalogSongModal";
 import { StudioMicroappPrimaryButton } from "@/components/studio/ui/StudioMicroappPrimaryButton";
 import { Button } from "@/components/ui/button";
 import { useStudioMobileLayout } from "@/lib/studio/use-studio-mobile-layout";
 import { StudioMicroappSkeletonListRowsEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
 import { useStudioMicroappSessionCacheOptional } from "@/contexts/studio-microapp-session-cache";
+import { cn } from "@/lib/utils/cn";
 
 type SongRow = CatalogSong & { releaseTitle: string | null };
 
@@ -122,6 +135,11 @@ export function StudioLibraryWindow({
     song: SongRow;
     v: CatalogSongVersion;
   } | null>(null);
+  const [versionDownloadTarget, setVersionDownloadTarget] = useState<{
+    song: SongRow;
+    v: CatalogSongVersion;
+  } | null>(null);
+  const [downloadModalBusy, setDownloadModalBusy] = useState(false);
   const [newSongModalOpen, setNewSongModalOpen] = useState(false);
 
   const goToDetail = useCallback(
@@ -189,7 +207,19 @@ export function StudioLibraryWindow({
     playerError,
     clearCatalogPlayer,
     shouldAutoplayStudioLibraryEmbed,
+    libraryAudioPlaying,
+    toggleLibraryAudio,
+    registerLibraryAudioToggle,
+    reportLibraryAudioPlaying,
   } = useCatalogPlayer();
+
+  const libraryAudioListSync = useMemo(
+    () => ({
+      registerToggle: registerLibraryAudioToggle,
+      onPlayingChange: reportLibraryAudioPlaying,
+    }),
+    [registerLibraryAudioToggle, reportLibraryAudioPlaying]
+  );
 
   const layoutMobile = useStudioMobileLayout();
   /** Bottom bar only on desktop shell; omit while layout is still `undefined` (no double player). */
@@ -251,22 +281,54 @@ export function StudioLibraryWindow({
     [loadCatalog, goToDetail]
   );
 
-  const handleDownloadVersion = useCallback(async (v: CatalogSongVersion) => {
-    setIoMessage(null);
-    const supabase = createClient();
-    const { data, error: uErr } = await supabase.storage
-      .from(CATALOG_MP3_BUCKET)
-      .createSignedUrl(v.storage_path, 3600);
+  const downloadCatalogVersionToDevice = useCallback(
+    async (v: CatalogSongVersion): Promise<boolean> => {
+      setIoMessage(null);
+      const supabase = createClient();
+      const { data: blob, error: dErr } = await supabase.storage
+        .from(CATALOG_MP3_BUCKET)
+        .download(v.storage_path);
 
-    if (uErr || !data?.signedUrl) {
-      setIoMessage({
-        kind: "error",
-        text: uErr?.message ?? "Could not create download link.",
-      });
-      return;
+      if (dErr || !blob) {
+        setIoMessage({
+          kind: "error",
+          text: dErr?.message ?? "Could not download file.",
+        });
+        return false;
+      }
+
+      try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = v.file_name?.trim() || "audio";
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        return true;
+      } catch {
+        setIoMessage({
+          kind: "error",
+          text: "Could not save the file. Try again from the song edit page.",
+        });
+        return false;
+      }
+    },
+    []
+  );
+
+  const confirmDownloadVersion = useCallback(async () => {
+    if (!versionDownloadTarget) return;
+    setDownloadModalBusy(true);
+    try {
+      const ok = await downloadCatalogVersionToDevice(versionDownloadTarget.v);
+      if (ok) setVersionDownloadTarget(null);
+    } finally {
+      setDownloadModalBusy(false);
     }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-  }, []);
+  }, [versionDownloadTarget, downloadCatalogVersionToDevice]);
 
   const confirmDeleteVersion = useCallback(async () => {
     if (!versionDeleteTarget) return;
@@ -410,7 +472,7 @@ export function StudioLibraryWindow({
       await loadCatalog();
       const parts = [`Imported ${created} song(s).`];
       if (skipped) parts.push(`${skipped} row(s) skipped.`);
-      parts.push("MP3 versions must be uploaded on each song's edit page.");
+      parts.push("Audio versions must be uploaded on each song's edit page.");
       if (errors.length) parts.push(errors.slice(0, 4).join(" "));
       setIoMessage({ kind: errors.length && created === 0 ? "error" : "success", text: parts.join(" ") });
     } catch (e) {
@@ -535,13 +597,18 @@ export function StudioLibraryWindow({
                     song={s}
                     versions={versionsBySong[s.id] || []}
                     versionBusyId={versionBusyId}
+                    activeStoragePath={activeTrack?.storagePath ?? null}
+                    libraryAudioPlaying={libraryAudioPlaying}
+                    onToggleLibraryAudio={toggleLibraryAudio}
                     onPlay={(storagePath, title, label) =>
                       void playCatalogVersion(storagePath, title, label)
                     }
                     onAskFeedback={(versionId, songTitle, versionLabel) =>
                       setShareVersion({ versionId, songTitle, versionLabel })
                     }
-                    onDownloadVersion={(v) => void handleDownloadVersion(v)}
+                    onRequestDownloadVersion={(v) =>
+                      setVersionDownloadTarget({ song: s, v })
+                    }
                     onDeleteVersion={(v) => setVersionDeleteTarget({ song: s, v })}
                     onEdit={() => goToDetail(s.id)}
                   />
@@ -581,9 +648,25 @@ export function StudioLibraryWindow({
           error={playerError}
           onClear={clearCatalogPlayer}
           libraryAutoplayGate={shouldAutoplayStudioLibraryEmbed}
+          libraryAudioListSync={libraryAudioListSync}
           ariaLabel="Library audio player"
         />
       )}
+
+      <CatalogVersionDownloadModal
+        open={versionDownloadTarget !== null}
+        onClose={() => {
+          if (!downloadModalBusy) setVersionDownloadTarget(null);
+        }}
+        onConfirm={confirmDownloadVersion}
+        songTitle={versionDownloadTarget?.song.title ?? ""}
+        versionLabel={
+          versionDownloadTarget
+            ? catalogVersionRowLabel(versionDownloadTarget.v)
+            : ""
+        }
+        busy={downloadModalBusy}
+      />
 
       <CatalogVersionDeleteModal
         open={versionDeleteTarget !== null}
@@ -663,18 +746,24 @@ function SongCard({
   song,
   versions,
   versionBusyId,
+  activeStoragePath,
+  libraryAudioPlaying,
+  onToggleLibraryAudio,
   onPlay,
   onAskFeedback,
-  onDownloadVersion,
+  onRequestDownloadVersion,
   onDeleteVersion,
   onEdit,
 }: {
   song: SongRow;
   versions: CatalogSongVersion[];
   versionBusyId: string | null;
+  activeStoragePath: string | null;
+  libraryAudioPlaying: boolean;
+  onToggleLibraryAudio: () => void;
   onPlay: (storagePath: string, title: string, label: string) => void;
   onAskFeedback: (versionId: string, songTitle: string, versionLabel: string) => void;
-  onDownloadVersion: (v: CatalogSongVersion) => void;
+  onRequestDownloadVersion: (v: CatalogSongVersion) => void;
   onDeleteVersion: (v: CatalogSongVersion) => void;
   onEdit: () => void;
 }) {
@@ -692,15 +781,75 @@ function SongCard({
       onMouseLeave={() => setHovered(false)}
     >
       {/* Song header row */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: versions.length ? 8 : 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: versions.length ? 10 : 0 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: S.textPrimary, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, color: S.textPrimary, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {song.title}
           </span>
           {song.releaseTitle && (
-            <span style={{ fontSize: 10, color: S.textFaint, marginTop: 2, display: "block" }}>
-              {song.releaseTitle}
-            </span>
+            <div
+              style={{
+                marginTop: 6,
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                columnGap: 8,
+                rowGap: 6,
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: S.textMuted,
+                  flexShrink: 0,
+                }}
+              >
+                Linked Release:
+              </span>
+              {song.release_id ? (
+                <Link
+                  href={`/home?releaseId=${encodeURIComponent(song.release_id)}`}
+                  scroll={false}
+                  className={cn(
+                    "inline-flex w-fit max-w-[min(100%,18rem)] min-w-0 shrink items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm font-medium leading-none no-underline transition-opacity hover:opacity-90"
+                  )}
+                  style={{
+                    borderColor: S.border,
+                    background: "rgba(255, 253, 248, 0.92)",
+                    color: S.textSecondary,
+                  }}
+                  title={song.releaseTitle}
+                >
+                  <Disc3
+                    className="h-3.5 w-3.5 shrink-0 opacity-80"
+                    style={{ color: S.textMuted }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 truncate">{song.releaseTitle}</span>
+                </Link>
+              ) : (
+                <div
+                  className={cn(
+                    "inline-flex w-fit max-w-[min(100%,18rem)] min-w-0 shrink items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm font-medium leading-none"
+                  )}
+                  style={{
+                    borderColor: S.border,
+                    background: "rgba(255, 253, 248, 0.92)",
+                    color: S.textSecondary,
+                  }}
+                  title={song.releaseTitle}
+                >
+                  <Disc3
+                    className="h-3.5 w-3.5 shrink-0 opacity-80"
+                    style={{ color: S.textMuted }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 truncate">{song.releaseTitle}</span>
+                </div>
+              )}
+            </div>
           )}
         </div>
         <Button
@@ -721,21 +870,71 @@ function SongCard({
       {versions.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {versions.map((v) => {
-            const label = v.label || v.file_name;
+            const rowLabel = catalogVersionRowLabel(v);
+            const hasCustomLabel = Boolean(v.label?.trim());
             const rowBusy = versionBusyId === v.id;
+            const isActiveRow = activeStoragePath === v.storage_path;
+            const showPause = isActiveRow && libraryAudioPlaying;
             return (
-              <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <div
+                key={v.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  flexWrap: "wrap",
+                }}
+              >
                 <Button
                   type="button"
                   variant="outlineSoft"
                   size="micro"
                   disabled={rowBusy}
-                  onClick={() => onPlay(v.storage_path, song.title, label)}
-                  className="min-h-[22px] flex-1 min-w-0 justify-start gap-1.5 !text-[11px] opacity-100 disabled:opacity-55"
+                  onClick={() =>
+                    isActiveRow
+                      ? onToggleLibraryAudio()
+                      : onPlay(v.storage_path, song.title, rowLabel)
+                  }
+                  className={`!min-h-11 md:!min-h-8 flex-1 min-w-0 justify-start !gap-2 !px-3 !py-2 md:!px-2.5 md:!py-1 !text-sm leading-snug opacity-100 disabled:opacity-55 ${
+                    isActiveRow
+                      ? "!border-[#924d0e] !text-white hover:!border-[#7a420c] hover:!bg-[#924d0e]"
+                      : ""
+                  }`}
+                  style={
+                    isActiveRow
+                      ? {
+                          background: S.accent,
+                          borderRadius: 8,
+                          color: S.accentText,
+                        }
+                      : undefined
+                  }
                 >
-                  <Play size={10} className="shrink-0 text-[#b89070]" />
-                  <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-                    {v.label ? v.label : <span className="text-[#b89070]">{v.file_name}</span>}
+                  {showPause ? (
+                    <Pause
+                      size={18}
+                      className={`shrink-0 ${isActiveRow ? "text-white" : "text-[#b89070]"}`}
+                      fill="currentColor"
+                      stroke="none"
+                      strokeWidth={0}
+                    />
+                  ) : (
+                    <Play
+                      size={18}
+                      className={`shrink-0 pl-0.5 ${isActiveRow ? "text-white" : "text-[#b89070]"}`}
+                      fill="currentColor"
+                      stroke="none"
+                      strokeWidth={0}
+                    />
+                  )}
+                  <span
+                    className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${isActiveRow ? "font-semibold text-white" : ""}`}
+                  >
+                    {isActiveRow || hasCustomLabel ? (
+                      rowLabel
+                    ) : (
+                      <span className="text-[#b89070]">{rowLabel}</span>
+                    )}
                   </span>
                 </Button>
                 <Button
@@ -743,9 +942,10 @@ function SongCard({
                   variant="outlineBlue"
                   size="micro"
                   disabled={rowBusy}
-                  onClick={() => onAskFeedback(v.id, song.title, label)}
-                  className="shrink-0 opacity-100 disabled:opacity-55"
+                  onClick={() => onAskFeedback(v.id, song.title, rowLabel)}
+                  className="!min-h-11 md:!min-h-8 shrink-0 !gap-2 !px-3 !py-2 md:!px-2.5 md:!py-1 !text-sm leading-snug opacity-100 disabled:opacity-55"
                 >
+                  <LinkIcon size={16} strokeWidth={2.25} className="shrink-0" />
                   Share
                 </Button>
                 <Button
@@ -753,10 +953,10 @@ function SongCard({
                   variant="outlineWarm"
                   size="micro"
                   disabled={rowBusy}
-                  onClick={() => onDownloadVersion(v)}
-                  className="shrink-0 gap-1 opacity-100 disabled:opacity-55"
+                  onClick={() => onRequestDownloadVersion(v)}
+                  className="!min-h-11 md:!min-h-8 shrink-0 !gap-2 !px-3 !py-2 md:!px-2.5 md:!py-1 !text-sm leading-snug opacity-100 disabled:opacity-55"
                 >
-                  <Download size={10} className="shrink-0" />
+                  <Download size={16} strokeWidth={2.25} className="shrink-0" />
                   Download
                 </Button>
                 <Button
@@ -765,9 +965,9 @@ function SongCard({
                   size="micro"
                   disabled={rowBusy}
                   onClick={() => onDeleteVersion(v)}
-                  className="shrink-0 gap-1 border-[#a82820] text-[#a82820] hover:bg-[rgba(168,40,32,0.10)] opacity-100 disabled:opacity-55"
+                  className="!min-h-11 md:!min-h-8 shrink-0 !gap-2 !px-3 !py-2 md:!px-2.5 md:!py-1 !text-sm leading-snug border-[#a82820] text-[#a82820] hover:bg-[rgba(168,40,32,0.10)] opacity-100 disabled:opacity-55"
                 >
-                  <Trash2 size={10} className="shrink-0" />
+                  <Trash2 size={16} strokeWidth={2.25} className="shrink-0" />
                   Delete
                 </Button>
               </div>

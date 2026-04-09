@@ -1,15 +1,30 @@
 export const ACCEPTED_AUDIO_FORMATS = {
   "audio/wav": [".wav"],
   "audio/x-wav": [".wav"],
+  "audio/wave": [".wav"],
   "audio/mpeg": [".mp3"],
+  "audio/mp3": [".mp3"],
   "audio/flac": [".flac"],
   "audio/x-flac": [".flac"],
   "audio/aac": [".aac", ".m4a"],
   "audio/mp4": [".m4a"],
+  "audio/x-m4a": [".m4a"],
   "audio/ogg": [".ogg"],
+  "audio/opus": [".opus"],
+  "application/ogg": [".ogg", ".opus"],
+  "audio/webm": [".webm"],
 } as const;
 
-export const ACCEPTED_EXTENSIONS = [".wav", ".mp3", ".flac", ".aac", ".m4a", ".ogg"];
+export const ACCEPTED_EXTENSIONS = [
+  ".wav",
+  ".mp3",
+  ".flac",
+  ".aac",
+  ".m4a",
+  ".ogg",
+  ".opus",
+  ".webm",
+] as const;
 export const ACCEPTED_MIME_TYPES = Object.keys(ACCEPTED_AUDIO_FORMATS);
 export const LOSSLESS_EXTENSIONS = [".wav", ".flac"];
 
@@ -43,9 +58,9 @@ export const MAX_DURATION_SECONDS = Math.floor((MAX_WAV_SIZE - 44) / (44100 * 2 
 export function validateAudioFile(file: File): AudioValidationResult {
   const errors: string[] = [];
   const ext = "." + file.name.split(".").pop()?.toLowerCase();
-  const isLossless = LOSSLESS_EXTENSIONS.includes(ext);
+  const isLossless = (LOSSLESS_EXTENSIONS as readonly string[]).includes(ext);
 
-  if (!ACCEPTED_EXTENSIONS.includes(ext)) {
+  if (!(ACCEPTED_EXTENSIONS as readonly string[]).includes(ext)) {
     errors.push(
       `Unsupported format. Accepted: ${ACCEPTED_EXTENSIONS.join(", ")}`
     );

@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentType,
@@ -231,7 +232,17 @@ export function StudioMobileShell() {
     playerLoading,
     playerError,
     shouldAutoplayStudioLibraryEmbed,
+    registerLibraryAudioToggle,
+    reportLibraryAudioPlaying,
   } = useCatalogPlayer();
+
+  const libraryAudioListSync = useMemo(
+    () => ({
+      registerToggle: registerLibraryAudioToggle,
+      onPlayingChange: reportLibraryAudioPlaying,
+    }),
+    [registerLibraryAudioToggle, reportLibraryAudioPlaying]
+  );
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [donateOpen, setDonateOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -431,6 +442,7 @@ export function StudioMobileShell() {
                     error={playerError}
                     onClear={clearCatalogPlayer}
                     libraryAutoplayGate={shouldAutoplayStudioLibraryEmbed}
+                    libraryAudioListSync={libraryAudioListSync}
                     ariaLabel="Library audio player"
                   />
                 ) : undefined

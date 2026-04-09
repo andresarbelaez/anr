@@ -11,8 +11,10 @@ import { Select } from "@/components/ui/select";
 import type { CatalogSong, CatalogSongVersion, Release } from "@/lib/supabase/types";
 import {
   CATALOG_MP3_BUCKET,
+  CATALOG_VERSION_FILE_ACCEPT,
+  catalogAudioUploadContentType,
   safeStorageFileName,
-  validateCatalogMp3File,
+  validateCatalogAudioFile,
 } from "@/lib/utils/catalog-mp3";
 import { useCatalogPlayer } from "@/contexts/catalog-player-context";
 import { CatalogVersionDeleteModal } from "@/components/catalog/CatalogVersionDeleteModal";
@@ -111,7 +113,7 @@ export function CatalogSongEditClient({
   };
 
   const handleDeleteSong = async () => {
-    if (!confirm("Delete this song, all MP3 versions, and stored files?")) return;
+    if (!confirm("Delete this song, all audio versions, and stored files?")) return;
     setDeleting(true);
     setError(null);
     const supabase = createClient();
@@ -159,7 +161,7 @@ export function CatalogSongEditClient({
 
   const handleUpload = async () => {
     if (!uploadFile || !song) return;
-    const msg = validateCatalogMp3File(uploadFile);
+    const msg = validateCatalogAudioFile(uploadFile);
     if (msg) {
       setError(msg);
       return;
@@ -183,7 +185,7 @@ export function CatalogSongEditClient({
     const { error: upErr } = await supabase.storage
       .from(CATALOG_MP3_BUCKET)
       .upload(storagePath, uploadFile, {
-        contentType: uploadFile.type || "audio/mpeg",
+        contentType: catalogAudioUploadContentType(uploadFile),
         upsert: false,
       });
 
@@ -246,15 +248,28 @@ export function CatalogSongEditClient({
 
   const handleDownload = async (v: CatalogSongVersion) => {
     const supabase = createClient();
-    const { data, error: uErr } = await supabase.storage
+    const { data: blob, error: dErr } = await supabase.storage
       .from(CATALOG_MP3_BUCKET)
-      .createSignedUrl(v.storage_path, 3600);
+      .download(v.storage_path);
 
-    if (uErr || !data?.signedUrl) {
-      setError(uErr?.message ?? "Could not create download link.");
+    if (dErr || !blob) {
+      setError(dErr?.message ?? "Could not download file.");
       return;
     }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = v.file_name?.trim() || "audio";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Could not save the file. Try again.");
+    }
   };
 
   if (loading) {
@@ -350,7 +365,7 @@ export function CatalogSongEditClient({
       </form>
 
       <section className="mt-12 max-w-2xl border-t border-neutral-800 pt-10">
-        <h2 className="text-lg font-semibold text-white">MP3 versions</h2>
+        <h2 className="text-lg font-semibold text-white">Audio versions</h2>
         <p className="mt-1 text-sm text-neutral-400">
           Upload reference mixes, demos, or alternates. Files stay private to
           your account.
@@ -421,11 +436,11 @@ export function CatalogSongEditClient({
           />
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-neutral-300">
-              MP3 file
+              Audio file
             </label>
             <input
               type="file"
-              accept=".mp3,audio/mpeg,audio/mp3"
+              accept={CATALOG_VERSION_FILE_ACCEPT}
               className="block w-full text-sm text-neutral-300 file:mr-4 file:rounded-lg file:border-0 file:bg-neutral-800 file:px-4 file:py-2 file:text-white"
               onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
             />
@@ -458,6 +473,7 @@ export function CatalogSongEditClient({
           : ""
       }
       busy={deletingVersion}
+      appearance={embedStudio ? "studio" : "dark"}
     />
     </>
   );

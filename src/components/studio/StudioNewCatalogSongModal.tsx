@@ -6,6 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import type { Release } from "@/lib/supabase/types";
 import { S } from "@/components/studio/ui/s";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Props = {
   open: boolean;
@@ -113,35 +119,31 @@ export function StudioNewCatalogSongModal({ open, onClose, onCreated }: Props) {
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[2400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="studio-new-song-title"
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !saving) onClose();
+      }}
     >
-      <Button
-        type="button"
-        variant="bare"
-        disabled={saving}
-        className="absolute inset-0 h-full min-h-full w-full cursor-pointer bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)] disabled:cursor-default"
-        aria-label="Close dialog"
-        onClick={() => {
-          if (!saving) onClose();
-        }}
-      />
-      <div
-        className="relative z-10 w-full max-w-md rounded-lg border p-5 shadow-xl"
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName="z-[5300] bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)]"
+        className="z-[5301] max-h-[min(90vh,720px)] w-full max-w-md gap-0 overflow-y-auto border p-5 sm:max-w-md"
         style={{
           background: S.surface,
           borderColor: S.border,
           boxShadow: "0 16px 48px rgba(0,0,0,0.35)",
         }}
+        onPointerDownOutside={(e) => {
+          if (saving) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (saving) e.preventDefault();
+        }}
       >
-        <h2
-          id="studio-new-song-title"
+        <DialogTitle
+          className="font-normal"
           style={{
             fontSize: 16,
             fontWeight: 700,
@@ -150,10 +152,19 @@ export function StudioNewCatalogSongModal({ open, onClose, onCreated }: Props) {
           }}
         >
           New song
-        </h2>
-        <p style={{ margin: "6px 0 0", fontSize: 12, color: S.textMuted, lineHeight: 1.5 }}>
-          Add MP3 versions on the next screen after you create the song.
-        </p>
+        </DialogTitle>
+        <DialogDescription asChild>
+          <p
+            style={{
+              margin: "6px 0 0",
+              fontSize: 12,
+              color: S.textMuted,
+              lineHeight: 1.5,
+            }}
+          >
+            Add audio versions on the next screen after you create the song.
+          </p>
+        </DialogDescription>
 
         <form onSubmit={(e) => void handleSubmit(e)} style={{ marginTop: 20 }}>
           {error && (
@@ -230,7 +241,7 @@ export function StudioNewCatalogSongModal({ open, onClose, onCreated }: Props) {
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -209,7 +209,7 @@ export async function applyApprovedMutation(
         return { ok: false, message: insErr.message };
       }
       const vh = ver?.id ? ` (version ${String(ver.id).slice(0, 8)}…)` : "";
-      return { ok: true, message: `Library MP3 version added${vh}.` };
+      return { ok: true, message: `Library audio version added${vh}.` };
     }
     case "update_catalog_song_version": {
       const versionId = asUuid(args.version_id);

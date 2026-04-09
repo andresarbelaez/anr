@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ACCEPTED_MIME_TYPES } from "@/lib/utils/audio-validation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const ALLOWED: Record<string, AgentKind> = {
@@ -7,12 +8,11 @@ const ALLOWED: Record<string, AgentKind> = {
   "image/webp": "image",
   "image/gif": "image",
   "text/csv": "csv",
-  "audio/mpeg": "audio",
-  "audio/mp3": "audio",
-  "audio/wav": "audio",
-  "audio/x-wav": "audio",
-  "audio/wave": "audio",
 };
+
+for (const mime of ACCEPTED_MIME_TYPES) {
+  ALLOWED[mime] = "audio";
+}
 
 type AgentKind = "image" | "audio" | "csv";
 
@@ -51,7 +51,11 @@ export async function POST(request: Request) {
   }
 
   const max =
-    kind === "image" ? 8 * 1024 * 1024 : kind === "audio" ? 20 * 1024 * 1024 : 4 * 1024 * 1024;
+    kind === "image"
+      ? 8 * 1024 * 1024
+      : kind === "audio"
+        ? 50 * 1024 * 1024
+        : 4 * 1024 * 1024;
   if (file.size > max) {
     return NextResponse.json({ error: "File too large" }, { status: 400 });
   }

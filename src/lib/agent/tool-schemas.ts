@@ -15,7 +15,7 @@ export const AGENT_READ_TOOLS = [
     function: {
       name: "list_catalog_songs",
       description:
-        "List library/catalog songs for the user (id, title). For MP3 versions on a song, call list_catalog_versions with that song_id.",
+        "List library/catalog songs for the user (id, title). For audio versions on a song, call list_catalog_versions with that song_id.",
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
@@ -24,7 +24,7 @@ export const AGENT_READ_TOOLS = [
     function: {
       name: "list_catalog_versions",
       description:
-        "List MP3 versions for one library song (id, label, file_name). Use before creating a feedback link or editing a version.",
+        "List audio file versions for one library song (id, label, file_name). Use before creating a feedback link or editing a version.",
       parameters: {
         type: "object",
         properties: {
@@ -58,7 +58,7 @@ export const AGENT_READ_TOOLS = [
     function: {
       name: "get_guest_listen_url",
       description:
-        "Fetch the canonical guest listen URL for one library MP3 version from the database (computed on the server). **Always use this** when the user wants a share link for a specific version. Reply with the **guestListenUrl** string exactly as returned — full UUID in the path, no truncation, do not rebuild the URL yourself.",
+        "Fetch the canonical guest listen URL for one library audio version from the database (computed on the server). **Always use this** when the user wants a share link for a specific version. Reply with the **guestListenUrl** string exactly as returned — full UUID in the path, no truncation, do not rebuild the URL yourself.",
       parameters: {
         type: "object",
         properties: {
@@ -99,7 +99,7 @@ export const AGENT_READ_TOOLS = [
     function: {
       name: "list_feedback_comments",
       description:
-        "Read guest feedback comments for one library MP3 version (threaded roots with replies, plus latestComment by time). Requires catalog_song_version_id: use list_catalog_songs → list_catalog_versions (match song title + version label) or list_feedback_links (includes version id).",
+        "Read guest feedback comments for one library audio version (threaded roots with replies, plus latestComment by time). Requires catalog_song_version_id: use list_catalog_songs → list_catalog_versions (match song title + version label) or list_feedback_links (includes version id).",
       parameters: {
         type: "object",
         properties: {
@@ -235,7 +235,7 @@ export const AGENT_MUTATION_TOOLS = [
     function: {
       name: "delete_catalog_song",
       description:
-        "Queue permanent deletion of a catalog song and its MP3 versions and feedback link. Requires user approval.",
+        "Queue permanent deletion of a catalog song and its audio versions and feedback link. Requires user approval.",
       parameters: {
         type: "object",
         properties: {
@@ -251,14 +251,15 @@ export const AGENT_MUTATION_TOOLS = [
     function: {
       name: "create_catalog_song_version",
       description:
-        "Queue adding an **MP3** version to a library song. Use **exactly one** source: (1) **agent_attachment_path** — path string from the user's attached MP3 in chat, or (2) **existing_catalog_mp3_path** — object already uploaded to catalog_mp3 under `{userId}/{songId}/...` (e.g. after manual upload). Requires file_name (.mp3). Requires user approval.",
+        "Queue adding an **audio** version to a library song (mp3, wav, m4a, flac, ogg, etc.). Use **exactly one** source: (1) **agent_attachment_path** — path string from the user's attached audio in chat, or (2) **existing_catalog_mp3_path** — object already uploaded to catalog_mp3 under `{userId}/{songId}/...` (e.g. after manual upload). Requires file_name with a supported extension. Requires user approval.",
       parameters: {
         type: "object",
         properties: {
           song_id: { type: "string" },
           file_name: {
             type: "string",
-            description: "Display name ending in .mp3",
+            description:
+              "Display name with extension (e.g. mix.wav, master.mp3, edit.m4a)",
           },
           label: { type: "string", description: "Optional version label" },
           agent_attachment_path: {
@@ -298,7 +299,7 @@ export const AGENT_MUTATION_TOOLS = [
     function: {
       name: "delete_catalog_song_version",
       description:
-        "Queue removing one MP3 version (deletes storage object and row; feedback link for that version is removed). Requires user approval.",
+        "Queue removing one audio file version (deletes storage object and row; feedback link for that version is removed). Requires user approval.",
       parameters: {
         type: "object",
         properties: {
@@ -314,7 +315,7 @@ export const AGENT_MUTATION_TOOLS = [
     function: {
       name: "create_feedback_link",
       description:
-        "Queue creating the **guest listen / feedback** share row for a catalog MP3 version (one link per version). Fails if a link already exists — then use set_feedback_link_enabled. Requires user approval.",
+        "Queue creating the **guest listen / feedback** share row for a catalog audio version (one link per version). Fails if a link already exists — then use set_feedback_link_enabled. Requires user approval.",
       parameters: {
         type: "object",
         properties: {

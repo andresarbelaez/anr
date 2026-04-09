@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { S } from "@/components/studio/ui/s";
 import {
   MetadataForm,
   type ReleaseMetadata,
@@ -223,11 +224,19 @@ export function NewReleaseWizard({
                     className="flex shrink-0 items-center gap-1.5"
                   >
                     <div
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition ${
                         i <= step
-                          ? "bg-white text-black"
+                          ? ""
                           : "bg-neutral-800 text-neutral-500"
                       }`}
+                      style={
+                        i <= step
+                          ? {
+                              backgroundColor: S.accent,
+                              color: S.accentText,
+                            }
+                          : undefined
+                      }
                     >
                       {i + 1}
                     </div>
@@ -254,11 +263,19 @@ export function NewReleaseWizard({
                 className="flex items-center gap-2"
               >
                 <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition ${
                     i <= step
-                      ? "bg-white text-black"
+                      ? ""
                       : "bg-neutral-800 text-neutral-500"
                   }`}
+                  style={
+                    i <= step
+                      ? {
+                          backgroundColor: S.accent,
+                          color: S.accentText,
+                        }
+                      : undefined
+                  }
                 >
                   {i + 1}
                 </div>
@@ -335,7 +352,12 @@ export function NewReleaseWizard({
           </div>
 
           {step < STEPS.length - 1 ? (
-            <Button onClick={handleNext} disabled={!canNext() || submitting}>
+            <Button
+              type="button"
+              variant="studioMicroappPrimary"
+              onClick={handleNext}
+              disabled={!canNext() || submitting}
+            >
               Next
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

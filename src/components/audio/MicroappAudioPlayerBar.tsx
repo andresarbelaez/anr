@@ -26,6 +26,13 @@ export type MicroappAudioTrack = {
   versionLabel: string;
   /** Present for catalog-backed tracks; used with `libraryAutoplayGate`. */
   playRequestId?: number;
+  /** Catalog storage path when this track comes from the library player context. */
+  storagePath?: string;
+};
+
+export type LibraryAudioListSync = {
+  registerToggle: (fn: (() => void) | null) => void;
+  onPlayingChange: (playing: boolean) => void;
 };
 
 export type MicroappAudioPlayerBarHandle = {
@@ -72,6 +79,11 @@ type Props = {
    * (e.g. mobile Library so the FAB does not cover the player).
    */
   embeddedPlacement?: "bottom" | "top";
+  /**
+   * When set (studio Library embed only), registers pause/resume for list rows and mirrors
+   * element play state into `CatalogPlayerProvider`.
+   */
+  libraryAudioListSync?: LibraryAudioListSync;
 };
 
 export const MicroappAudioPlayerBar = forwardRef<
@@ -91,6 +103,7 @@ export const MicroappAudioPlayerBar = forwardRef<
     autoPlayOnNewSource = true,
     libraryAutoplayGate,
     embeddedPlacement = "bottom",
+    libraryAudioListSync,
   },
   ref
 ) {
@@ -124,6 +137,26 @@ export const MicroappAudioPlayerBar = forwardRef<
     }),
     []
   );
+
+  useEffect(() => {
+    if (!libraryAudioListSync) return;
+    const toggle = () => {
+      const a = audioRef.current;
+      if (!a) return;
+      if (a.paused) {
+        void a.play().catch(() => libraryAudioListSync.onPlayingChange(false));
+      } else {
+        a.pause();
+      }
+    };
+    libraryAudioListSync.registerToggle(toggle);
+    return () => libraryAudioListSync.registerToggle(null);
+  }, [libraryAudioListSync]);
+
+  useEffect(() => {
+    if (!libraryAudioListSync) return;
+    libraryAudioListSync.onPlayingChange(playing);
+  }, [playing, libraryAudioListSync]);
 
   // Bind audio to `trackSrc` only when the URL changes — not when `track` is a new object (e.g. feedback embed
   // recreating `{ src, songTitle, versionLabel }` each render). Each mounted bar still has its own <audio> element.

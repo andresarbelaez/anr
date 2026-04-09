@@ -464,7 +464,28 @@ create trigger set_updated_at before update on public.crm_contacts
 -- Run the following block once in the Supabase SQL editor after the tables above exist.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('catalog_mp3', 'catalog_mp3', false, 52428800, array['audio/mpeg', 'audio/mp3'])
+values (
+  'catalog_mp3',
+  'catalog_mp3',
+  false,
+  52428800,
+  array[
+    'audio/mpeg',
+    'audio/mp3',
+    'audio/wav',
+    'audio/x-wav',
+    'audio/wave',
+    'audio/mp4',
+    'audio/x-m4a',
+    'audio/aac',
+    'audio/flac',
+    'audio/x-flac',
+    'audio/ogg',
+    'audio/opus',
+    'application/ogg',
+    'audio/webm'
+  ]
+)
 on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
@@ -800,10 +821,24 @@ values (
   'agent_attachments',
   'agent_attachments',
   false,
-  26214400,
+  52428800,
   array[
     'image/jpeg', 'image/png', 'image/webp', 'image/gif',
-    'text/csv', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'
+    'text/csv',
+    'audio/mpeg',
+    'audio/mp3',
+    'audio/wav',
+    'audio/x-wav',
+    'audio/wave',
+    'audio/mp4',
+    'audio/x-m4a',
+    'audio/aac',
+    'audio/flac',
+    'audio/x-flac',
+    'audio/ogg',
+    'audio/opus',
+    'application/ogg',
+    'audio/webm'
   ]
 )
 on conflict (id) do nothing;

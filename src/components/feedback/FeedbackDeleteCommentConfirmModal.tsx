@@ -2,11 +2,15 @@
 
 import { Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils/cn";
 import { S } from "@/components/studio/ui/s";
-
-/** Above feedback micro-app chrome; align with StudioSignOutConfirmModal. */
-const MODAL_Z = 5300;
 
 type Appearance = "studio" | "dark";
 
@@ -28,8 +32,6 @@ export function FeedbackDeleteCommentConfirmModal({
   busy = false,
   appearance = "dark",
 }: Props) {
-  if (!open) return null;
-
   const combinedBusy = !!busy;
 
   const isStudio = appearance === "studio";
@@ -41,34 +43,23 @@ export function FeedbackDeleteCommentConfirmModal({
     : "This cannot be undone.";
 
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center p-4"
-      style={{ zIndex: MODAL_Z }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="fb-delete-comment-title"
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !combinedBusy) onClose();
+      }}
     >
-      <Button
-        type="button"
-        variant="bare"
-        disabled={combinedBusy}
-        className={cn(
-          "absolute inset-0 h-full min-h-full w-full cursor-pointer disabled:cursor-wait",
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName={cn(
+          "z-[5300]",
           isStudio
             ? "bg-[rgba(28,18,8,0.45)] hover:bg-[rgba(28,18,8,0.45)]"
             : "bg-black/70 hover:bg-black/70"
         )}
-        aria-label="Close dialog"
-        onClick={() => {
-          if (!combinedBusy) onClose();
-        }}
-      />
-      <div
         className={cn(
-          "relative z-10 w-full max-w-sm rounded-lg border p-5 pt-4 shadow-xl",
-          isStudio
-            ? ""
-            : "border-neutral-800 bg-neutral-950 shadow-black/40"
+          "z-[5301] w-full max-w-sm gap-0 border p-5 pt-4 sm:max-w-sm",
+          !isStudio && "border-neutral-800 bg-neutral-950 shadow-black/40"
         )}
         style={
           isStudio
@@ -79,30 +70,35 @@ export function FeedbackDeleteCommentConfirmModal({
               }
             : undefined
         }
+        onPointerDownOutside={(e) => {
+          if (combinedBusy) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (combinedBusy) e.preventDefault();
+        }}
       >
-        <Button
-          type="button"
-          variant="bare"
-          disabled={combinedBusy}
-          className={cn(
-            "absolute right-2 top-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 disabled:opacity-50",
-            isStudio
-              ? "text-[#8a6040] hover:bg-black/[0.06] hover:text-[#5a3518] focus-visible:ring-[#d4b896]/80"
-              : "text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200 focus-visible:ring-neutral-600/50"
-          )}
-          aria-label="Close"
-          onClick={onClose}
-        >
-          <X className="h-4 w-4" strokeWidth={2.2} />
-        </Button>
+        <DialogClose asChild>
+          <Button
+            type="button"
+            variant="bare"
+            disabled={combinedBusy}
+            className={cn(
+              "absolute right-2 top-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 disabled:opacity-50",
+              isStudio
+                ? "text-[#8a6040] hover:bg-black/[0.06] hover:text-[#5a3518] focus-visible:ring-[#d4b896]/80"
+                : "text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200 focus-visible:ring-neutral-600/50"
+            )}
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" strokeWidth={2.2} />
+          </Button>
+        </DialogClose>
 
         <div className="flex flex-col items-center text-center">
           <div
             className={cn(
               "mb-3 flex h-12 w-12 items-center justify-center rounded-xl border",
-              isStudio
-                ? ""
-                : "border-neutral-700 bg-neutral-900"
+              !isStudio && "border-neutral-700 bg-neutral-900"
             )}
             style={
               isStudio
@@ -119,25 +115,26 @@ export function FeedbackDeleteCommentConfirmModal({
               style={{ color: isStudio ? S.error : "#f87171" }}
             />
           </div>
-          <h2
-            id="fb-delete-comment-title"
+          <DialogTitle
             className={cn(
               "m-0 text-[17px] font-bold",
-              isStudio ? "" : "text-white"
+              !isStudio && "text-white"
             )}
             style={isStudio ? { color: S.textPrimary } : undefined}
           >
             {title}
-          </h2>
-          <p
-            className={cn(
-              "mx-auto mt-2.5 max-w-[260px] text-xs leading-snug",
-              isStudio ? "" : "text-neutral-400"
-            )}
-            style={isStudio ? { color: S.textMuted } : undefined}
-          >
-            {description}
-          </p>
+          </DialogTitle>
+          <DialogDescription asChild>
+            <p
+              className={cn(
+                "mx-auto mt-2.5 max-w-[260px] text-xs leading-snug",
+                !isStudio && "text-neutral-400"
+              )}
+              style={isStudio ? { color: S.textMuted } : undefined}
+            >
+              {description}
+            </p>
+          </DialogDescription>
         </div>
 
         <div className="mt-6 flex flex-wrap justify-end gap-2">
@@ -172,7 +169,7 @@ export function FeedbackDeleteCommentConfirmModal({
             Delete
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils/cn";
 import { getEventColor, RELEASE_EVENT_STYLE } from "@/lib/utils/calendar-colors";
 import type {
@@ -444,17 +445,16 @@ export function EventDetailModal({
     }
 
     return (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-        onClick={onClose}
-      >
-        <div
-          className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent
+          showCloseButton={false}
+          overlayClassName="z-[5300] bg-black/70"
+          className="z-[5301] w-full max-w-sm gap-0 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 p-0 shadow-2xl sm:max-w-sm"
         >
+          <DialogTitle className="sr-only">{event.title}</DialogTitle>
           {viewBody}
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -519,11 +519,18 @@ export function EventDetailModal({
     }
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-        <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent
+          showCloseButton={false}
+          overlayClassName="z-[5300] bg-black/70"
+          className="z-[5301] w-full max-w-sm gap-0 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 p-0 shadow-2xl sm:max-w-sm"
+        >
+          <DialogTitle className="sr-only">
+            {scopeTarget === "delete" ? "Delete" : "Edit"} recurring event
+          </DialogTitle>
           {scopeBody}
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -581,11 +588,16 @@ export function EventDetailModal({
     }
 
     return (
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 pt-16 pb-8">
-        <div className="flex max-h-[calc(100vh-6rem)] w-full max-w-lg flex-col rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent
+          showCloseButton={false}
+          overlayClassName="z-[5300] bg-black/70"
+          className="z-[5301] flex max-h-[min(90vh,calc(100vh-4rem))] w-full max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 p-0 shadow-2xl sm:max-w-lg"
+        >
+          <DialogTitle className="sr-only">Edit event</DialogTitle>
           {editBody}
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 

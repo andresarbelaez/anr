@@ -131,7 +131,7 @@ export function ArtistProfileSettingsForm() {
             onChange={(e) => update("bio", e.target.value)}
             placeholder="Tell listeners about yourself..."
             rows={4}
-            className="flex w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent"
+            className="flex w-full rounded-lg border border-neutral-700 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent"
           />
         </div>
 

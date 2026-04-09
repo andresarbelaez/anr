@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   defaultForm,
   EventFormFields,
@@ -37,8 +38,6 @@ export function EventModal({
     if (!open) return;
     setForm(defaultForm(prefillDate));
   }, [open, prefillDate]);
-
-  if (!open) return null;
 
   const set = <K extends keyof EventFormData>(k: K, v: EventFormData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -102,6 +101,7 @@ export function EventModal({
   );
 
   if (presentation === "panel") {
+    if (!open) return null;
     return (
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden border-t border-neutral-800 bg-neutral-950">
         {header}
@@ -112,12 +112,17 @@ export function EventModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 pt-16 pb-8">
-      <div className="flex w-full max-w-lg flex-col rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl max-h-[calc(100vh-6rem)]">
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName="z-[5300] bg-black/70"
+        className="z-[5301] flex max-h-[min(90vh,calc(100vh-4rem))] w-full max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 p-0 shadow-2xl sm:max-w-lg"
+      >
+        <DialogTitle className="sr-only">New event</DialogTitle>
         {header}
         {body}
         {footer}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

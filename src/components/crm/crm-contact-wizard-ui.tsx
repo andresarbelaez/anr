@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
+import { S } from "@/components/studio/ui/s";
 
 export const CRM_CONTACT_WIZARD_STEPS = [
   "Basic info",
@@ -63,11 +64,19 @@ export function CrmContactWizardStepper({
                   className="flex shrink-0 items-center gap-1.5"
                 >
                   <div
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition ${
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition ${
                       i <= step
-                        ? "bg-white text-black"
+                        ? ""
                         : "bg-neutral-800 text-neutral-500"
                     }`}
+                    style={
+                      i <= step
+                        ? {
+                            backgroundColor: S.accent,
+                            color: S.accentText,
+                          }
+                        : undefined
+                    }
                   >
                     {i + 1}
                   </div>
@@ -94,11 +103,19 @@ export function CrmContactWizardStepper({
               className="flex items-center gap-2"
             >
               <div
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition ${
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition ${
                   i <= step
-                    ? "bg-white text-black"
+                    ? ""
                     : "bg-neutral-800 text-neutral-500"
                 }`}
+                style={
+                  i <= step
+                    ? {
+                        backgroundColor: S.accent,
+                        color: S.accentText,
+                      }
+                    : undefined
+                }
               >
                 {i + 1}
               </div>

@@ -200,7 +200,8 @@ export function prepareMutationForQueue(
       if (!fileName) {
         return {
           content: JSON.stringify({
-            error: "create_catalog_song_version: file_name required (.mp3)",
+            error:
+              "create_catalog_song_version: file_name required (audio extension, e.g. .mp3, .wav, .m4a)",
           }),
         };
       }
@@ -245,7 +246,7 @@ export function prepareMutationForQueue(
       if (asOptionalString(args.label) !== undefined) {
         cleanArgs.label = asNonEmptyString(args.label) ?? null;
       }
-      summary = `Add MP3 version "${fileName}" to song ${songId.slice(0, 8)}…`;
+      summary = `Add audio version "${fileName}" to song ${songId.slice(0, 8)}…`;
       break;
     }
     case "update_catalog_song_version": {
@@ -286,7 +287,7 @@ export function prepareMutationForQueue(
         };
       }
       cleanArgs.version_id = versionId;
-      summary = `Delete library MP3 version ${versionId.slice(0, 8)}…`;
+      summary = `Delete library audio version ${versionId.slice(0, 8)}…`;
       break;
     }
     case "create_feedback_link": {

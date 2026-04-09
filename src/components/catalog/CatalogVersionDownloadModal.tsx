@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LogOut, X } from "lucide-react";
-import { S } from "@/components/studio/ui/s";
+import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,35 +9,26 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils/cn";
+import { S } from "@/components/studio/ui/s";
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** Called when the user confirms; typically sign out + navigate. */
   onConfirm: () => void | Promise<void>;
+  songTitle: string;
+  /** Full row label (including appended file type), e.g. `Radio edit.mp3`. */
+  versionLabel: string;
+  busy?: boolean;
 };
 
-export function StudioSignOutConfirmModal({
+export function CatalogVersionDownloadModal({
   open,
   onClose,
   onConfirm,
+  songTitle,
+  versionLabel,
+  busy = false,
 }: Props) {
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!open) setBusy(false);
-  }, [open]);
-
-  const handleConfirm = async () => {
-    setBusy(true);
-    try {
-      await onConfirm();
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <Dialog
       open={open}
@@ -49,7 +38,7 @@ export function StudioSignOutConfirmModal({
     >
       <DialogContent
         showCloseButton={false}
-        overlayClassName="z-[5300] bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)]"
+        overlayClassName="z-[5300] bg-[rgba(28,18,8,0.45)] hover:bg-[rgba(28,18,8,0.45)]"
         className="z-[5301] w-full max-w-sm gap-0 border p-5 pt-4 sm:max-w-sm"
         style={{
           background: S.surface,
@@ -83,35 +72,28 @@ export function StudioSignOutConfirmModal({
               borderColor: S.border,
             }}
           >
-            <LogOut
+            <Download
               className="h-6 w-6"
-              style={{ color: S.textSecondary }}
               strokeWidth={2}
+              style={{ color: S.accent }}
             />
           </div>
           <DialogTitle
-            className="font-normal"
-            style={{
-              margin: 0,
-              fontSize: 17,
-              fontWeight: 700,
-              color: S.textPrimary,
-            }}
+            className="m-0 px-6 text-[17px] font-bold leading-snug"
+            style={{ color: S.textPrimary }}
           >
-            Sign out?
+            Download this version?
           </DialogTitle>
           <DialogDescription asChild>
             <p
-              style={{
-                margin: "10px 0 0",
-                fontSize: 12,
-                color: S.textMuted,
-                lineHeight: 1.55,
-                maxWidth: 260,
-              }}
+              className="mx-auto mt-2.5 max-w-[280px] text-xs leading-snug"
+              style={{ color: S.textMuted }}
             >
-              You&apos;ll need to sign in again to open your studio and manage
-              your work.
+              <span className="font-medium" style={{ color: S.textSecondary }}>
+                {songTitle}
+              </span>
+              <span aria-hidden="true"> · </span>
+              {versionLabel}
             </p>
           </DialogDescription>
         </div>
@@ -122,22 +104,18 @@ export function StudioSignOutConfirmModal({
             variant="outlineSoft"
             size="sm"
             disabled={busy}
-            className={cn(
-              "!rounded-sm !border-[#d4b896] !text-xs !font-medium text-[#5a3518]"
-            )}
+            className="!rounded-sm !border-[#d4b896] !text-xs !font-medium text-[#5a3518]"
             onClick={onClose}
           >
             Cancel
           </Button>
           <Button
             type="button"
-            variant="danger"
-            size="sm"
+            variant="studioMicroappPrimary"
             loading={busy}
-            className="!rounded-sm !border-[#a82820] !text-xs !font-semibold !text-[#a82820] hover:!bg-[rgba(168,40,32,0.10)]"
-            onClick={() => void handleConfirm()}
+            onClick={() => void onConfirm()}
           >
-            Sign out
+            Download
           </Button>
         </div>
       </DialogContent>

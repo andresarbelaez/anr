@@ -5,13 +5,17 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, MessageCircle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import type { FeedbackVersionLink } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils/cn";
 import { S } from "@/components/studio/ui/s";
-
-/** Match `StudioDonateModal` / `StudioSignOutConfirmModal`. */
-const MODAL_Z = 5300;
 
 const labelStyle: CSSProperties = {
   display: "block",
@@ -141,44 +145,44 @@ export function FeedbackShareModal({
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center p-4"
-      style={{ zIndex: MODAL_Z }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="feedback-share-title"
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !saving) onClose();
+      }}
     >
-      <Button
-        type="button"
-        variant="bare"
-        disabled={saving}
-        className="absolute inset-0 h-full min-h-full w-full cursor-pointer bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)] disabled:cursor-wait"
-        aria-label="Close dialog"
-        onClick={() => {
-          if (!saving) onClose();
-        }}
-      />
-      <div
-        className="relative z-10 w-full max-w-md rounded-lg border p-5 pt-4 shadow-xl"
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName={cn(
+          "z-[5300] bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)]"
+        )}
+        className={cn(
+          "z-[5301] max-h-[min(90vh,640px)] w-full max-w-md gap-0 overflow-y-auto border p-5 pt-4 sm:max-w-md"
+        )}
         style={{
           background: S.surface,
           borderColor: S.border,
           boxShadow: "0 16px 48px rgba(0,0,0,0.35)",
         }}
+        onPointerDownOutside={(e) => {
+          if (saving) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (saving) e.preventDefault();
+        }}
       >
-        <Button
-          type="button"
-          variant="bare"
-          disabled={saving}
-          className="absolute right-2 top-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#8a6040] transition-colors hover:bg-black/[0.06] hover:text-[#5a3518] focus-visible:ring-2 focus-visible:ring-[#d4b896]/80 disabled:opacity-50"
-          aria-label="Close"
-          onClick={onClose}
-        >
-          <X className="h-4 w-4" strokeWidth={2.2} />
-        </Button>
+        <DialogClose asChild>
+          <Button
+            type="button"
+            variant="bare"
+            disabled={saving}
+            className="absolute right-2 top-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#8a6040] transition-colors hover:bg-black/[0.06] hover:text-[#5a3518] focus-visible:ring-2 focus-visible:ring-[#d4b896]/80 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" strokeWidth={2.2} />
+          </Button>
+        </DialogClose>
 
         <div className="flex flex-col items-center text-center">
           <div
@@ -194,8 +198,8 @@ export function FeedbackShareModal({
               strokeWidth={2}
             />
           </div>
-          <h2
-            id="feedback-share-title"
+          <DialogTitle
+            className="font-normal"
             style={{
               margin: 0,
               fontSize: 17,
@@ -204,20 +208,22 @@ export function FeedbackShareModal({
             }}
           >
             Ask for feedback
-          </h2>
-          <p
-            style={{
-              margin: "8px 0 0",
-              fontSize: 12,
-              color: S.textMuted,
-              lineHeight: 1.55,
-              maxWidth: 320,
-            }}
-          >
-            {songTitle}
-            <span style={{ color: S.textFaint }}> · </span>
-            {versionLabel}
-          </p>
+          </DialogTitle>
+          <DialogDescription asChild>
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontSize: 12,
+                color: S.textMuted,
+                lineHeight: 1.55,
+                maxWidth: 320,
+              }}
+            >
+              {songTitle}
+              <span style={{ color: S.textFaint }}> · </span>
+              {versionLabel}
+            </p>
+          </DialogDescription>
         </div>
 
         {loading && (
@@ -298,7 +304,7 @@ export function FeedbackShareModal({
             </p>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

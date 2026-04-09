@@ -1,6 +1,11 @@
 import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CATALOG_MP3_BUCKET, safeStorageFileName } from "@/lib/utils/catalog-mp3";
+import { ACCEPTED_EXTENSIONS } from "@/lib/utils/audio-validation";
+import {
+  CATALOG_MP3_BUCKET,
+  catalogAudioUploadContentTypeFromFileName,
+  safeStorageFileName,
+} from "@/lib/utils/catalog-mp3";
 
 export function parseArgs(argsJson: string): Record<string, unknown> | null {
   try {
@@ -86,11 +91,13 @@ export async function copyAgentAttachmentToCatalogMp3(
   if (dErr || !blob) {
     return { ok: false, message: dErr?.message ?? "Could not read attachment." };
   }
-  const nameLower = displayFileName.trim().toLowerCase();
-  if (!nameLower.endsWith(".mp3")) {
+  const ext =
+    "." + (displayFileName.trim().split(".").pop() || "").toLowerCase();
+  const allowedExt = new Set<string>([...ACCEPTED_EXTENSIONS]);
+  if (!allowedExt.has(ext)) {
     return {
       ok: false,
-      message: "Library versions must use .mp3 (catalog_mp3 bucket).",
+      message: `Library versions must use a supported audio file (${ACCEPTED_EXTENSIONS.join(", ")}).`,
     };
   }
   const buf = await blob.arrayBuffer();
@@ -102,7 +109,7 @@ export async function copyAgentAttachmentToCatalogMp3(
   const { error: uErr } = await supabase.storage
     .from(CATALOG_MP3_BUCKET)
     .upload(storagePath, buf, {
-      contentType: "audio/mpeg",
+      contentType: catalogAudioUploadContentTypeFromFileName(displayFileName),
       upsert: false,
     });
   if (uErr) return { ok: false, message: uErr.message };

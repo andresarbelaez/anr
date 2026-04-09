@@ -52,7 +52,7 @@ async function userMessageForLlm(
       const base = head.type === "text" ? head.text : "";
       parts[0] = {
         type: "text",
-        text: `${base}\n\n[Attached audio: ${a.name || "file"} — use storage path \`${a.path}\` as agent_attachment_path when queuing a library MP3 version (MP3 only).]`,
+        text: `${base}\n\n[Attached audio: ${a.name || "file"} — use storage path \`${a.path}\` as agent_attachment_path when queuing a library audio version (supported formats: mp3, wav, m4a, flac, ogg, webm, etc.).]`,
       };
     }
   }

@@ -16,6 +16,8 @@ export type CatalogActiveTrack = {
   src: string;
   songTitle: string;
   versionLabel: string;
+  /** Storage object path for the playing file — library list matches rows to the embedded player. */
+  storagePath: string;
   /** Increments on each successful user-initiated play; used by the studio Library embed to skip autoplay on remount. */
   playRequestId: number;
 };
@@ -35,6 +37,12 @@ type CatalogPlayerContextValue = {
    * this gate accepted (user clicked a version), not when the same request is rebound after remount.
    */
   shouldAutoplayStudioLibraryEmbed: (playRequestId: number) => boolean;
+  /** Whether the library embed `<audio>` element is currently playing (drives list-row play/pause). */
+  libraryAudioPlaying: boolean;
+  /** Pause/resume the library embed player (no-op if the bar is not mounted). */
+  toggleLibraryAudio: () => void;
+  registerLibraryAudioToggle: (fn: (() => void) | null) => void;
+  reportLibraryAudioPlaying: (playing: boolean) => void;
 };
 
 const CatalogPlayerContext = createContext<CatalogPlayerContextValue | null>(
@@ -47,8 +55,22 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
   );
   const [playerLoading, setPlayerLoading] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const [libraryAudioPlaying, setLibraryAudioPlaying] = useState(false);
   const playRequestSeqRef = useRef(0);
   const lastLibraryEmbedConsumedRequestIdRef = useRef(0);
+  const libraryAudioToggleRef = useRef<(() => void) | null>(null);
+
+  const registerLibraryAudioToggle = useCallback((fn: (() => void) | null) => {
+    libraryAudioToggleRef.current = fn;
+  }, []);
+
+  const toggleLibraryAudio = useCallback(() => {
+    libraryAudioToggleRef.current?.();
+  }, []);
+
+  const reportLibraryAudioPlaying = useCallback((playing: boolean) => {
+    setLibraryAudioPlaying(playing);
+  }, []);
 
   const shouldAutoplayStudioLibraryEmbed = useCallback(
     (playRequestId: number) => {
@@ -87,6 +109,7 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
           src: data.signedUrl,
           songTitle,
           versionLabel,
+          storagePath,
           playRequestId,
         });
       } catch {
@@ -102,6 +125,7 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
     setActiveTrack(null);
     setPlayerError(null);
     setPlayerLoading(false);
+    setLibraryAudioPlaying(false);
     lastLibraryEmbedConsumedRequestIdRef.current = 0;
   }, []);
 
@@ -113,6 +137,10 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
       playCatalogVersion,
       clearCatalogPlayer,
       shouldAutoplayStudioLibraryEmbed,
+      libraryAudioPlaying,
+      toggleLibraryAudio,
+      registerLibraryAudioToggle,
+      reportLibraryAudioPlaying,
     }),
     [
       activeTrack,
@@ -121,6 +149,10 @@ export function CatalogPlayerProvider({ children }: { children: ReactNode }) {
       playCatalogVersion,
       clearCatalogPlayer,
       shouldAutoplayStudioLibraryEmbed,
+      libraryAudioPlaying,
+      toggleLibraryAudio,
+      registerLibraryAudioToggle,
+      reportLibraryAudioPlaying,
     ]
   );
 

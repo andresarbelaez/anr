@@ -5,12 +5,16 @@ import { useEffect, useState } from "react";
 import { Heart, X } from "lucide-react";
 import { S } from "@/components/studio/ui/s";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils/cn";
 
 const AMOUNTS = [5, 10, 25, 50] as const;
-
-/** Above `StudioViewportActions` (z-5200) and typical studio windows (z-2400). */
-const MODAL_Z = 5300;
 
 type Props = {
   open: boolean;
@@ -85,43 +89,40 @@ export function StudioDonateModal({ open, onClose }: Props) {
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center p-4"
-      style={{ zIndex: MODAL_Z }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="studio-donate-title"
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !loading) onClose();
+      }}
     >
-      <Button
-        type="button"
-        variant="bare"
-        disabled={loading}
-        className="absolute inset-0 h-full min-h-full w-full cursor-pointer bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)] disabled:cursor-wait"
-        aria-label="Close dialog"
-        onClick={() => {
-          if (!loading) onClose();
-        }}
-      />
-      <div
-        className="relative z-10 w-full max-w-md rounded-lg border p-5 pt-4 shadow-xl"
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName="z-[5300] bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)]"
+        className="z-[5301] max-h-[min(90vh,720px)] w-full max-w-md gap-0 overflow-y-auto border p-5 pt-4 sm:max-w-md"
         style={{
           background: S.surface,
           borderColor: S.border,
           boxShadow: "0 16px 48px rgba(0,0,0,0.35)",
         }}
+        onPointerDownOutside={(e) => {
+          if (loading) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (loading) e.preventDefault();
+        }}
       >
-        <Button
-          type="button"
-          variant="bare"
-          className="absolute right-2 top-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#8a6040] transition-colors hover:bg-black/[0.06] hover:text-[#5a3518] focus-visible:ring-2 focus-visible:ring-[#d4b896]/80"
-          aria-label="Close"
-          onClick={onClose}
-        >
-          <X className="h-4 w-4" strokeWidth={2.2} />
-        </Button>
+        <DialogClose asChild>
+          <Button
+            type="button"
+            variant="bare"
+            disabled={loading}
+            className="absolute right-2 top-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#8a6040] transition-colors hover:bg-black/[0.06] hover:text-[#5a3518] focus-visible:ring-2 focus-visible:ring-[#d4b896]/80 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" strokeWidth={2.2} />
+          </Button>
+        </DialogClose>
 
         <div className="flex flex-col items-center text-center">
           <div
@@ -137,8 +138,8 @@ export function StudioDonateModal({ open, onClose }: Props) {
               strokeWidth={2}
             />
           </div>
-          <h2
-            id="studio-donate-title"
+          <DialogTitle
+            className="font-normal"
             style={{
               margin: 0,
               fontSize: 17,
@@ -147,19 +148,21 @@ export function StudioDonateModal({ open, onClose }: Props) {
             }}
           >
             Support us
-          </h2>
-          <p
-            style={{
-              margin: "8px 0 0",
-              fontSize: 12,
-              color: S.textMuted,
-              lineHeight: 1.55,
-              maxWidth: 280,
-            }}
-          >
-            This platform is free for every artist. Your donation helps cover
-            server costs and keeps the service running.
-          </p>
+          </DialogTitle>
+          <DialogDescription asChild>
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontSize: 12,
+                color: S.textMuted,
+                lineHeight: 1.55,
+                maxWidth: 280,
+              }}
+            >
+              This platform is free for every artist. Your donation helps cover
+              server costs and keeps the service running.
+            </p>
+          </DialogDescription>
         </div>
 
         <div className="mt-5 space-y-4">
@@ -241,7 +244,7 @@ export function StudioDonateModal({ open, onClose }: Props) {
             charged recurring fees.
           </p>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
