@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import type { MicroappAudioPlayerBarHandle } from "@/components/audio/MicroappAudioPlayerBar";
+import { MicroappAudioPlayerBar } from "@/components/audio/MicroappAudioPlayerBar";
 import { FEEDBACK_TOKEN_RE } from "@/lib/feedback/feedback-token";
 import {
   readListenSessionCache,
@@ -13,12 +15,14 @@ import type {
   PublicFeedbackSessionJson,
 } from "@/lib/feedback/types";
 import { formatAudioTime } from "@/lib/utils/format-audio-time";
-import { cn } from "@/lib/utils/cn";
+import { formatFeedbackRelativeTime } from "@/lib/utils/format-feedback-relative-time";
 import { Button } from "@/components/ui/button";
 import { S } from "@/components/studio/ui/s";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Pause, Play, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { FeedbackDeleteCommentConfirmModal } from "@/components/feedback/FeedbackDeleteCommentConfirmModal";
+import { cn } from "@/lib/utils/cn";
 
 function giverStorageKey(token: string) {
   return `sidestage-fb-giver-${token}`;
@@ -36,6 +40,12 @@ function getOrCreateGiverSecret(token: string): string {
 
 function postedKey(token: string) {
   return `sidestage-fb-posted-${token}`;
+}
+
+function feedbackAvatarInitial(displayName: string | null): string {
+  const s = (displayName ?? "Anonymous").trim();
+  const ch = s[0];
+  return ch ? ch.toUpperCase() : "?";
 }
 
 function rememberPostedId(token: string, id: string) {
@@ -66,23 +76,32 @@ let supabasePreconnectDone = false;
 
 export function ListenFeedbackClient({ token }: { token: string }) {
   const idPrefix = useId();
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const listenPlayerRef = useRef<MicroappAudioPlayerBarHandle>(null);
   const [session, setSession] = useState<PublicFeedbackSessionJson | null>(
     null
   );
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [audioPlaybackError, setAudioPlaybackError] = useState<string | null>(
+    null
+  );
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [duration, setDuration] = useState(0);
-  const [current, setCurrent] = useState(0);
-  const [playing, setPlaying] = useState(false);
+  const [playheadSec, setPlayheadSec] = useState(0);
 
   const [displayName, setDisplayName] = useState("");
   const [newBody, setNewBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyDisplayName, setReplyDisplayName] = useState("");
   const [replyBody, setReplyBody] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    deletesThread: boolean;
+  } | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (
@@ -140,6 +159,10 @@ export function ListenFeedbackClient({ token }: { token: string }) {
       setSession((prev) => ({
         songTitle: b.songTitle,
         versionLabel: b.versionLabel,
+        artistName:
+          typeof b.artistName === "string" && b.artistName.trim()
+            ? b.artistName
+            : "this artist",
         audioUrl: b.audioUrl,
         audioUrlExpiresInSec: b.audioUrlExpiresInSec,
         comments: prev?.comments ?? [],
@@ -179,52 +202,24 @@ export function ListenFeedbackClient({ token }: { token: string }) {
   }, [token]);
 
   useEffect(() => {
-    const a = audioRef.current;
-    const url = session?.audioUrl;
-    if (!a || !url) return;
-    a.src = url;
-    a.load();
-  }, [session?.audioUrl]);
+    setAudioPlaybackError(null);
+    setPlayheadSec(0);
+  }, [token, session?.audioUrl]);
 
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-
-    const onTime = () => setCurrent(a.currentTime);
-    const onDur = () => {
-      const d = a.duration;
-      setDuration(Number.isFinite(d) ? d : 0);
-    };
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-
-    a.addEventListener("timeupdate", onTime);
-    a.addEventListener("durationchange", onDur);
-    a.addEventListener("loadedmetadata", onDur);
-    a.addEventListener("play", onPlay);
-    a.addEventListener("pause", onPause);
-
-    return () => {
-      a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("durationchange", onDur);
-      a.removeEventListener("loadedmetadata", onDur);
-      a.removeEventListener("play", onPlay);
-      a.removeEventListener("pause", onPause);
-    };
-  }, [session?.audioUrl]);
+  const listenTrack = useMemo(
+    () =>
+      session?.audioUrl
+        ? {
+            src: session.audioUrl,
+            songTitle: session.songTitle,
+            versionLabel: session.versionLabel,
+          }
+        : null,
+    [session?.audioUrl, session?.songTitle, session?.versionLabel]
+  );
 
   const seek = (value: number) => {
-    const a = audioRef.current;
-    if (!a || !Number.isFinite(duration) || duration <= 0) return;
-    a.currentTime = value;
-    setCurrent(value);
-  };
-
-  const togglePlay = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (playing) a.pause();
-    else void a.play().catch(() => setPlaying(false));
+    listenPlayerRef.current?.seek(value);
   };
 
   const mergeRoot = (
@@ -243,7 +238,7 @@ export function ListenFeedbackClient({ token }: { token: string }) {
   };
 
   const postTopLevel = async () => {
-    if (!session || !newBody.trim()) return;
+    if (!session || !newBody.trim() || !displayName.trim()) return;
     setPosting(true);
     try {
       const giverSecret = getOrCreateGiverSecret(token);
@@ -252,8 +247,8 @@ export function ListenFeedbackClient({ token }: { token: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           body: newBody.trim(),
-          displayName: displayName.trim() || null,
-          secondsIntoTrack: current,
+          displayName: displayName.trim(),
+          secondsIntoTrack: playheadSec,
           parentId: null,
           giverSecret,
         }),
@@ -282,7 +277,7 @@ export function ListenFeedbackClient({ token }: { token: string }) {
   };
 
   const postReply = async (parentId: string) => {
-    if (!session || !replyBody.trim()) return;
+    if (!session || !replyBody.trim() || !replyDisplayName.trim()) return;
     setPosting(true);
     try {
       const giverSecret = getOrCreateGiverSecret(token);
@@ -291,7 +286,7 @@ export function ListenFeedbackClient({ token }: { token: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           body: replyBody.trim(),
-          displayName: displayName.trim() || null,
+          displayName: replyDisplayName.trim(),
           parentId,
           giverSecret,
         }),
@@ -321,6 +316,7 @@ export function ListenFeedbackClient({ token }: { token: string }) {
         return next;
       });
       setReplyBody("");
+      setReplyDisplayName("");
       setReplyTo(null);
       setLoadError(null);
     } catch (e) {
@@ -330,40 +326,74 @@ export function ListenFeedbackClient({ token }: { token: string }) {
     }
   };
 
-  const deleteOwn = async (commentId: string) => {
-    const giverSecret = getOrCreateGiverSecret(token);
-    const res = await fetch(
-      `/api/public/feedback/${token}/comments/${commentId}`,
-      {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ giverSecret }),
-      }
-    );
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      throw new Error(
-        typeof json?.error === "string" ? json.error : "Could not delete."
-      );
+  const refreshCommentsFromServer = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/public/feedback/${token}/comments`);
+      const json = (await res.json()) as PublicFeedbackCommentsJson & {
+        error?: string;
+      };
+      if (!res.ok) return false;
+      if (!Array.isArray(json.comments)) return false;
+      setSession((s) => {
+        if (!s) return s;
+        const next = { ...s, comments: json.comments };
+        writeListenSessionCache(token, next);
+        return next;
+      });
+      setCommentsError(null);
+      return true;
+    } catch {
+      return false;
     }
-    setSession((s) => {
-      if (!s) return s;
-      const comments = s.comments
-        .filter((c) => c.id !== commentId)
-        .map((c) => ({
-          ...c,
-          replies: c.replies.filter((r) => r.id !== commentId),
-        }));
-      const next = { ...s, comments };
-      writeListenSessionCache(token, next);
-      return next;
-    });
-    setLoadError(null);
+  }, [token]);
+
+  const deleteOwn = async (commentId: string): Promise<boolean> => {
+    setDeletingCommentId(commentId);
+    try {
+      const giverSecret = getOrCreateGiverSecret(token);
+      const res = await fetch(
+        `/api/public/feedback/${token}/comments/${commentId}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ giverSecret }),
+        }
+      );
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setLoadError(
+          typeof json?.error === "string" ? json.error : "Could not delete."
+        );
+        return false;
+      }
+      const refreshed = await refreshCommentsFromServer();
+      if (!refreshed) {
+        setSession((s) => {
+          if (!s) return s;
+          const comments = s.comments
+            .filter((c) => c.id !== commentId)
+            .map((c) => ({
+              ...c,
+              replies: c.replies.filter((r) => r.id !== commentId),
+            }));
+          const next = { ...s, comments };
+          writeListenSessionCache(token, next);
+          return next;
+        });
+      }
+      setLoadError(null);
+      return true;
+    } catch {
+      setLoadError("Could not delete.");
+      return false;
+    } finally {
+      setDeletingCommentId(null);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-16">
         <div
           className="h-8 w-8 animate-spin rounded-full border-2 border-[#ecddc8] border-t-[#a85c10]"
           aria-hidden
@@ -374,321 +404,366 @@ export function ListenFeedbackClient({ token }: { token: string }) {
 
   if (loadError && !session) {
     return (
-      <p
-        className="rounded-lg border px-4 py-3 text-sm"
-        style={{
-          background: S.errorBg,
-          borderColor: S.error,
-          color: S.error,
-        }}
-      >
-        {loadError}
-      </p>
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <p
+          className="rounded-lg border px-4 py-3 text-sm"
+          style={{
+            background: S.errorBg,
+            borderColor: S.error,
+            color: S.error,
+          }}
+        >
+          {loadError}
+        </p>
+      </div>
     );
   }
 
   if (!session) return null;
 
+  const listenCommentTotal = session.comments.reduce(
+    (n, c) => n + 1 + c.replies.length,
+    0
+  );
+
+  const commentListScrollable = session.comments.length > 0;
+
   return (
-    <div className="mx-auto max-w-xl space-y-8">
-      <div>
-        <h1
-          className="text-xl font-semibold tracking-tight"
-          style={{ color: S.textPrimary }}
-        >
-          {session.songTitle}
-        </h1>
-        <p className="text-sm" style={{ color: S.textMuted }}>
-          {session.versionLabel}
-        </p>
-      </div>
+    <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-6 overflow-hidden pb-2">
+      <h1 className="sr-only">
+        {session.songTitle} · {session.versionLabel} · {session.artistName}
+      </h1>
 
-      <audio
-        ref={audioRef}
-        preload="auto"
-        className="hidden"
-        onError={() => {
-          setLoadError(
-            "Audio could not be loaded. The link may have expired — refresh the page. If it persists, the file may be missing from storage."
-          );
-        }}
-      />
-
-      <div className="flex flex-col gap-0">
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="circleLight"
-            onClick={togglePlay}
-            className="!h-12 !w-12 shrink-0"
-            aria-label={playing ? "Pause" : "Play"}
-          >
-            {playing ? (
-              <Pause
-                className="h-6 w-6"
-                fill="currentColor"
-                stroke="none"
-                strokeWidth={0}
-              />
-            ) : (
-              <Play
-                className="h-6 w-6 pl-0.5"
-                fill="currentColor"
-                stroke="none"
-                strokeWidth={0}
-              />
-            )}
-          </Button>
-          <div
-            className={cn(
-              "relative h-2 min-w-0 flex-1 overflow-hidden rounded-full",
-              (!Number.isFinite(duration) || duration <= 0) && "opacity-50"
-            )}
-            style={{ background: S.borderFaint }}
-          >
-            <div
-              className="pointer-events-none absolute left-0 top-0 h-full rounded-full"
-              style={{
-                width:
-                  duration > 0
-                    ? `${Math.min(100, Math.max(0, (current / duration) * 100))}%`
-                    : "0%",
-                background: S.accent,
-              }}
-            />
-            <input
-              type="range"
-              min={0}
-              max={Math.max(duration, 0.01)}
-              step={0.05}
-              value={duration > 0 ? Math.min(current, duration) : 0}
-              onChange={(e) => seek(Number(e.target.value))}
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              disabled={!Number.isFinite(duration) || duration <= 0}
-              aria-label="Seek"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-12 shrink-0" aria-hidden />
-          <div
-            className="flex min-w-0 flex-1 justify-between text-xs tabular-nums"
-            style={{ color: S.textMuted }}
-          >
-            <span className="text-left">{formatAudioTime(current)}</span>
-            <span className="text-right">{formatAudioTime(duration)}</span>
-          </div>
-        </div>
+      <div className="shrink-0">
+        <MicroappAudioPlayerBar
+          ref={listenPlayerRef}
+          appearance="listen"
+          variant="feedback"
+          track={listenTrack}
+          loading={false}
+          error={audioPlaybackError}
+          onClear={() => {}}
+          autoPlayOnNewSource={false}
+          ariaLabel="Track audio player"
+          onTimeUpdate={setPlayheadSec}
+          onPlaybackError={() =>
+            setAudioPlaybackError(
+              "Audio could not be loaded. The link may have expired — refresh the page. If it persists, the file may be missing from storage."
+            )
+          }
+        />
       </div>
 
       {loadError && (
-        <p className="text-sm" style={{ color: S.error }}>
+        <p className="shrink-0 text-sm" style={{ color: S.error }}>
           {loadError}
         </p>
       )}
 
-      <section
-        className="space-y-4 border-t pt-6"
-        style={{ borderColor: S.border }}
-      >
-        <h2
-          className="text-sm font-semibold tracking-wide uppercase"
-          style={{ color: S.textSecondary, letterSpacing: "0.04em" }}
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden">
+        <section
+          className={cn(
+            "flex flex-col gap-3",
+            commentListScrollable && "min-h-0 flex-1 overflow-hidden"
+          )}
         >
-          Leave feedback
-        </h2>
-        <Input
-          id={`${idPrefix}-name`}
-          label="Your name (optional)"
-          appearance="studio"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="e.g. Mom"
-        />
-        <Textarea
-          id={`${idPrefix}-note`}
-          label={`Note at ${formatAudioTime(current)}`}
-          appearance="studio"
-          value={newBody}
-          onChange={(e) => setNewBody(e.target.value)}
-          placeholder="What are you hearing that could be improved?"
-          rows={3}
-        />
-        <Button
-          type="button"
-          variant="studioAccent"
-          loading={posting}
-          className="!rounded-sm !font-semibold"
-          onClick={() => void postTopLevel()}
-          disabled={!newBody.trim()}
-        >
-          Add comment
-        </Button>
-      </section>
-
-      <section className="space-y-3">
-        <h2
-          className="text-sm font-semibold tracking-wide uppercase"
-          style={{ color: S.textSecondary, letterSpacing: "0.04em" }}
-        >
-          Comments
-        </h2>
-        {commentsError ? (
-          <p className="text-sm" style={{ color: S.warning }}>
-            {commentsError}
-          </p>
-        ) : commentsLoading && session.comments.length === 0 ? (
-          <p className="text-sm" style={{ color: S.textMuted }}>
-            Loading comments…
-          </p>
-        ) : session.comments.length === 0 ? (
-          <p className="text-sm" style={{ color: S.textMuted }}>
-            No comments yet.
-          </p>
-        ) : (
-          <ul className="space-y-4">
-            {session.comments.map((c) => (
-              <li
-                key={c.id}
-                className="rounded-lg border p-4"
-                style={{
-                  background: S.surface,
-                  borderColor: S.border,
-                }}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <button
-                    type="button"
-                    className="text-left text-sm font-semibold hover:underline"
-                    style={{ color: S.accent }}
-                    onClick={() => seek(c.secondsIntoTrack)}
+          <h2
+            className="shrink-0 text-sm font-semibold tracking-wide uppercase"
+            style={{ color: S.textSecondary, letterSpacing: "0.04em" }}
+          >
+            Comments ({listenCommentTotal})
+          </h2>
+          {commentsError ? (
+            <p className="shrink-0 text-sm" style={{ color: S.warning }}>
+              {commentsError}
+            </p>
+          ) : commentsLoading && session.comments.length === 0 ? (
+            <p className="shrink-0 text-sm" style={{ color: S.textMuted }}>
+              Loading comments…
+            </p>
+          ) : session.comments.length === 0 ? (
+            <p className="shrink-0 text-sm" style={{ color: S.textMuted }}>
+              No comments yet.
+            </p>
+          ) : (
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+              role="region"
+              aria-label="Comments list"
+            >
+              <ul className="space-y-4 pb-4">
+            {session.comments.map((c) => {
+              const relAgo = formatFeedbackRelativeTime(c.createdAt);
+              const showDeleteRoot = isPostedByThisBrowser(token, c.id);
+              return (
+                <li key={c.id} className="flex gap-3">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+                    style={{ background: S.accentBg, color: S.accent }}
+                    aria-hidden
                   >
-                    {formatAudioTime(c.secondsIntoTrack)}
-                  </button>
-                  {isPostedByThisBrowser(token, c.id) && (
-                    <Button
-                      type="button"
-                      variant="bare"
-                      onClick={() =>
-                        void deleteOwn(c.id).catch((err) =>
-                          setLoadError(
-                            err instanceof Error ? err.message : "Delete failed"
-                          )
-                        )
-                      }
-                      className="rounded p-1 text-[#8a6040] hover:bg-black/[0.04] hover:text-[#a82820]"
-                      aria-label="Delete my comment"
+                    {feedbackAvatarInitial(c.displayName)}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div
+                      className="relative rounded-lg border p-4"
+                      style={{
+                        background: S.surface,
+                        borderColor: S.border,
+                      }}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                <p className="mt-1 text-xs" style={{ color: S.textMuted }}>
-                  {c.displayName ?? "Anonymous"}
-                </p>
-                <p
-                  className="mt-2 whitespace-pre-wrap text-sm leading-relaxed"
-                  style={{ color: S.textPrimary }}
-                >
-                  {c.body}
-                </p>
-
-                {c.replies.length > 0 && (
-                  <ul
-                    className="mt-3 space-y-2 border-l pl-3"
-                    style={{ borderColor: S.borderFaint }}
-                  >
-                    {c.replies.map((r) => (
-                      <li key={r.id}>
-                        <p className="text-xs" style={{ color: S.textMuted }}>
-                          {r.displayName ?? "Anonymous"}
-                        </p>
-                        <p
-                          className="text-sm leading-relaxed"
-                          style={{ color: S.textSecondary }}
-                        >
-                          {r.body}
-                        </p>
-                        {isPostedByThisBrowser(token, r.id) && (
-                          <button
+                      {showDeleteRoot && (
+                        <div className="absolute right-2 top-2">
+                          <Button
                             type="button"
+                            variant="bare"
+                            disabled={deletingCommentId !== null}
                             onClick={() =>
-                              void deleteOwn(r.id).catch((err) =>
-                                setLoadError(
-                                  err instanceof Error
-                                    ? err.message
-                                    : "Delete failed"
-                                )
-                              )
+                              setPendingDelete({
+                                id: c.id,
+                                deletesThread: true,
+                              })
                             }
-                            className="mt-1 text-xs hover:underline"
-                            style={{ color: S.textFaint }}
+                            className="rounded p-1 text-[#8a6040] hover:bg-black/[0.04] hover:text-[#a82820]"
+                            aria-label="Delete my comment"
                           >
-                            Delete my reply
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <div className="mt-3">
-                  {replyTo === c.id ? (
-                    <div className="space-y-2">
-                      <Textarea
-                        id={`${idPrefix}-reply-${c.id}`}
-                        label="Reply"
-                        appearance="studio"
-                        value={replyBody}
-                        onChange={(e) => setReplyBody(e.target.value)}
-                        rows={2}
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="studioAccent"
-                          size="sm"
-                          loading={posting}
-                          className="!rounded-sm"
-                          onClick={() => void postReply(c.id)}
-                          disabled={!replyBody.trim()}
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                      <p
+                        className={`text-xs ${showDeleteRoot ? "pr-10" : ""}`}
+                        style={{ color: S.textMuted }}
+                      >
+                        <span
+                          className="font-semibold"
+                          style={{ color: S.textPrimary }}
                         >
-                          Send reply
-                        </Button>
+                          {c.displayName ?? "Anonymous"}
+                        </span>{" "}
+                        <button
+                          type="button"
+                          className="font-medium hover:underline"
+                          style={{ color: S.link }}
+                          onClick={() => seek(c.secondsIntoTrack)}
+                        >
+                          at {formatAudioTime(c.secondsIntoTrack)}
+                        </button>
+                        {relAgo ? (
+                          <>
+                            <span aria-hidden="true">{" \u2022 "}</span>
+                            <span>{relAgo}</span>
+                          </>
+                        ) : null}
+                      </p>
+                      <p
+                        className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed"
+                        style={{ color: S.textPrimary }}
+                      >
+                        {c.body}
+                      </p>
+                    </div>
+
+                    {c.replies.length > 0 && (
+                      <ul
+                        className="space-y-3 border-l pl-3"
+                        style={{ borderColor: S.borderFaint }}
+                      >
+                        {c.replies.map((r) => {
+                          const relReply = formatFeedbackRelativeTime(
+                            r.createdAt
+                          );
+                          const showDeleteReply = isPostedByThisBrowser(
+                            token,
+                            r.id
+                          );
+                          return (
+                            <li key={r.id} className="flex gap-2">
+                              <div
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                                style={{
+                                  background: S.accentBg,
+                                  color: S.accent,
+                                }}
+                                aria-hidden
+                              >
+                                {feedbackAvatarInitial(r.displayName)}
+                              </div>
+                              <div
+                                className="relative min-w-0 flex-1 rounded-lg border p-3"
+                                style={{
+                                  background: S.surfaceAlt,
+                                  borderColor: S.borderFaint,
+                                }}
+                              >
+                                {showDeleteReply && (
+                                  <div className="absolute right-1.5 top-1.5">
+                                    <Button
+                                      type="button"
+                                      variant="bare"
+                                      disabled={deletingCommentId !== null}
+                                      onClick={() =>
+                                        setPendingDelete({
+                                          id: r.id,
+                                          deletesThread: false,
+                                        })
+                                      }
+                                      className="rounded p-1 text-[#8a6040] hover:bg-black/[0.04] hover:text-[#a82820]"
+                                      aria-label="Delete my reply"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
+                                <p
+                                  className={`text-xs ${showDeleteReply ? "pr-9" : ""}`}
+                                  style={{ color: S.textMuted }}
+                                >
+                                  <span
+                                    className="font-semibold"
+                                    style={{ color: S.textPrimary }}
+                                  >
+                                    {r.displayName ?? "Anonymous"}
+                                  </span>
+                                  {relReply ? (
+                                    <>
+                                      <span aria-hidden="true">
+                                        {" \u2022 "}
+                                      </span>
+                                      <span>{relReply}</span>
+                                    </>
+                                  ) : null}
+                                </p>
+                                <p
+                                  className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed"
+                                  style={{ color: S.textSecondary }}
+                                >
+                                  {r.body}
+                                </p>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+
+                    <div>
+                      {replyTo === c.id ? (
+                        <div className="space-y-2">
+                          <Input
+                            id={`${idPrefix}-reply-name-${c.id}`}
+                            label="Name"
+                            appearance="studio"
+                            value={replyDisplayName}
+                            onChange={(e) => setReplyDisplayName(e.target.value)}
+                            placeholder="Your name"
+                            required
+                            autoComplete="name"
+                          />
+                          <Textarea
+                            id={`${idPrefix}-reply-${c.id}`}
+                            label="Reply"
+                            appearance="studio"
+                            value={replyBody}
+                            onChange={(e) => setReplyBody(e.target.value)}
+                            rows={2}
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="studioAccent"
+                              size="sm"
+                              loading={posting}
+                              className="!rounded-sm"
+                              onClick={() => void postReply(c.id)}
+                              disabled={
+                                !replyBody.trim() || !replyDisplayName.trim()
+                              }
+                            >
+                              Send reply
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outlineSoft"
+                              size="sm"
+                              className="!rounded-sm !border-[#d4b896] !text-xs font-medium text-[#5a3518]"
+                              onClick={() => {
+                                setReplyTo(null);
+                                setReplyDisplayName("");
+                                setReplyBody("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
                         <Button
                           type="button"
                           variant="outlineSoft"
                           size="sm"
                           className="!rounded-sm !border-[#d4b896] !text-xs font-medium text-[#5a3518]"
                           onClick={() => {
-                            setReplyTo(null);
+                            setReplyDisplayName(displayName);
                             setReplyBody("");
+                            setReplyTo(c.id);
                           }}
                         >
-                          Cancel
+                          Reply
                         </Button>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outlineSoft"
-                      size="sm"
-                      className="!rounded-sm !border-[#d4b896] !text-xs font-medium text-[#5a3518]"
-                      onClick={() => setReplyTo(c.id)}
-                    >
-                      Reply
-                    </Button>
-                  )}
-                </div>
-              </li>
-            ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
-        )}
-      </section>
+            </div>
+          )}
+        </section>
+
+        <section className="shrink-0 space-y-4">
+        <h2
+          className="text-sm font-semibold tracking-wide uppercase"
+          style={{ color: S.textSecondary, letterSpacing: "0.04em" }}
+        >
+          Leave feedback for {session.artistName}
+        </h2>
+        <Input
+          id={`${idPrefix}-name`}
+          label="Your name"
+          appearance="studio"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="e.g. Mom"
+          required
+          autoComplete="name"
+        />
+        <Textarea
+          id={`${idPrefix}-note`}
+          label={`Comment at ${formatAudioTime(playheadSec)}`}
+          appearance="studio"
+          value={newBody}
+          onChange={(e) => setNewBody(e.target.value)}
+          placeholder="What are you hearing that could be improved?"
+          rows={3}
+        />
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="studioMicroappPrimary"
+            loading={posting}
+            onClick={() => void postTopLevel()}
+            disabled={!newBody.trim() || !displayName.trim()}
+          >
+            Add comment
+          </Button>
+        </div>
+        </section>
+      </div>
 
       <p
-        className="text-center text-[11px] leading-relaxed"
+        className="shrink-0 text-center text-[11px] leading-relaxed"
         style={{ color: S.textFaint }}
       >
         Powered by{" "}
@@ -703,6 +778,22 @@ export function ListenFeedbackClient({ token }: { token: string }) {
         </a>{" "}
         — free tools for musical artists.
       </p>
+
+      <FeedbackDeleteCommentConfirmModal
+        open={pendingDelete !== null}
+        onClose={() =>
+          deletingCommentId === null && setPendingDelete(null)
+        }
+        busy={deletingCommentId !== null}
+        deletesThread={pendingDelete?.deletesThread ?? false}
+        appearance="studio"
+        onConfirm={async () => {
+          const target = pendingDelete;
+          if (!target) return;
+          const ok = await deleteOwn(target.id);
+          if (ok) setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }

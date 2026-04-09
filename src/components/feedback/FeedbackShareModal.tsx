@@ -1,11 +1,39 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useState } from "react";
+import { Check, Copy, MessageCircle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import type { FeedbackVersionLink } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils/cn";
 import { S } from "@/components/studio/ui/s";
+
+/** Match `StudioDonateModal` / `StudioSignOutConfirmModal`. */
+const MODAL_Z = 5300;
+
+const labelStyle: CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  fontWeight: 600,
+  color: S.textSecondary,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  marginBottom: 6,
+};
+
+const fieldStyle: CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "8px 10px",
+  fontSize: 12,
+  color: S.textPrimary,
+  background: S.bg,
+  border: `1px solid ${S.border}`,
+  borderRadius: 3,
+  outline: "none",
+};
 
 type Props = {
   open: boolean;
@@ -117,7 +145,8 @@ export function FeedbackShareModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: MODAL_Z }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="feedback-share-title"
@@ -125,90 +154,150 @@ export function FeedbackShareModal({
       <Button
         type="button"
         variant="bare"
-        className="absolute inset-0 h-full min-h-full w-full bg-black/70 hover:bg-black/70"
+        disabled={saving}
+        className="absolute inset-0 h-full min-h-full w-full cursor-pointer bg-[rgba(28,18,8,0.58)] hover:bg-[rgba(28,18,8,0.58)] disabled:cursor-wait"
         aria-label="Close dialog"
-        onClick={onClose}
+        onClick={() => {
+          if (!saving) onClose();
+        }}
       />
       <div
-        className={cn(
-          "relative z-10 w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-950 p-6 shadow-xl"
-        )}
+        className="relative z-10 w-full max-w-md rounded-lg border p-5 pt-4 shadow-xl"
+        style={{
+          background: S.surface,
+          borderColor: S.border,
+          boxShadow: "0 16px 48px rgba(0,0,0,0.35)",
+        }}
       >
-        <h2
-          id="feedback-share-title"
-          className="text-lg font-semibold text-white"
+        <Button
+          type="button"
+          variant="bare"
+          disabled={saving}
+          className="absolute right-2 top-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#8a6040] transition-colors hover:bg-black/[0.06] hover:text-[#5a3518] focus-visible:ring-2 focus-visible:ring-[#d4b896]/80 disabled:opacity-50"
+          aria-label="Close"
+          onClick={onClose}
         >
-          Ask for feedback
-        </h2>
-        <p className="mt-1 text-sm text-neutral-400">
-          {songTitle}
-          <span className="text-neutral-600"> · </span>
-          {versionLabel}
-        </p>
+          <X className="h-4 w-4" strokeWidth={2.2} />
+        </Button>
+
+        <div className="flex flex-col items-center text-center">
+          <div
+            className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border"
+            style={{
+              background: S.accentBg,
+              borderColor: "rgba(168,92,16,0.35)",
+            }}
+          >
+            <MessageCircle
+              className="h-6 w-6"
+              style={{ color: S.accent }}
+              strokeWidth={2}
+            />
+          </div>
+          <h2
+            id="feedback-share-title"
+            style={{
+              margin: 0,
+              fontSize: 17,
+              fontWeight: 700,
+              color: S.textPrimary,
+            }}
+          >
+            Ask for feedback
+          </h2>
+          <p
+            style={{
+              margin: "8px 0 0",
+              fontSize: 12,
+              color: S.textMuted,
+              lineHeight: 1.55,
+              maxWidth: 320,
+            }}
+          >
+            {songTitle}
+            <span style={{ color: S.textFaint }}> · </span>
+            {versionLabel}
+          </p>
+        </div>
 
         {loading && (
-          <p className="mt-6 text-sm text-neutral-500">Preparing link…</p>
+          <p
+            className="mt-5 text-center text-sm"
+            style={{ color: S.textMuted }}
+          >
+            Preparing link…
+          </p>
         )}
 
         {!loading && error && (
-          <p className="mt-4 text-sm text-red-300">{error}</p>
+          <p
+            className="mt-4 rounded-md px-3 py-2 text-center text-xs"
+            style={{
+              background: S.errorBg,
+              color: S.error,
+              border: `1px solid ${S.error}`,
+            }}
+          >
+            {error}
+          </p>
         )}
 
         {!loading && linkRow && (
-          <div className="mt-6 space-y-4">
+          <div className="mt-5 space-y-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-                Share link
-              </p>
-              <div className="mt-1 flex gap-2">
+              <span style={labelStyle}>Share link</span>
+              <div className="flex gap-2">
                 <input
                   readOnly
                   value={shareUrl}
-                  className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[rgba(168,92,16,0.38)]"
-                  style={{
-                    background: S.bg,
-                    borderColor: S.border,
-                    color: S.textPrimary,
-                  }}
+                  className="min-w-0 flex-1 focus:ring-2 focus:ring-[rgba(168,92,16,0.38)]"
+                  style={fieldStyle}
                 />
                 <Button
                   type="button"
                   size="sm"
-                  variant="secondary"
+                  variant="outlineSoft"
+                  className={cn(
+                    "!shrink-0 gap-1.5 !rounded-sm !border-[#d4b896] !text-[#5a3518] hover:!bg-black/[0.04] [&_svg]:shrink-0"
+                  )}
                   onClick={() => void copyLink()}
                 >
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5" aria-hidden />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" aria-hidden />
+                  )}
                   {copied ? "Copied" : "Copy"}
                 </Button>
               </div>
             </div>
 
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
+            <div className="flex items-center justify-between gap-3">
+              <label
+                htmlFor="feedback-share-enabled"
+                className="cursor-pointer text-sm"
+                style={{ color: S.textSecondary }}
+              >
+                Link enabled (guests can listen and comment)
+              </label>
+              <Switch
+                id="feedback-share-enabled"
                 checked={linkRow.enabled}
                 disabled={saving}
-                onChange={(e) => void setEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border accent-[#a85c10]"
-                style={{ borderColor: S.border }}
+                onCheckedChange={(checked) => void setEnabled(checked)}
               />
-              <span className="text-sm text-neutral-300">
-                Link enabled (guests can listen and comment)
-              </span>
-            </label>
+            </div>
 
-            <p className="text-xs text-neutral-500">
+            <p
+              className="text-center text-[10px] leading-relaxed"
+              style={{ color: S.textFaint }}
+            >
               Anyone with the link can listen and leave time-stamped notes. You
               always keep every comment on your Feedback page, even when the
               link is turned off.
             </p>
           </div>
         )}
-
-        <div className="mt-6 flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Done
-          </Button>
-        </div>
       </div>
     </div>
   );

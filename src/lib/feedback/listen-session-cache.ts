@@ -1,10 +1,11 @@
 import type { PublicFeedbackSessionJson } from "@/lib/feedback/types";
 
-const CACHE_KEY_PREFIX = "sidestage-fb-listen-v1";
+const CACHE_KEY_PREFIX = "sidestage-fb-listen-v2";
 
 type CachedPayload = {
   songTitle: string;
   versionLabel: string;
+  artistName: string;
   audioUrl: string;
   comments: PublicFeedbackSessionJson["comments"];
   /** Epoch ms — treat cache as stale shortly before signed URL expires */
@@ -39,6 +40,10 @@ export function readListenSessionCache(
     return {
       songTitle: d.songTitle,
       versionLabel: d.versionLabel,
+      artistName:
+        typeof d.artistName === "string" && d.artistName.trim()
+          ? d.artistName
+          : "this artist",
       audioUrl: d.audioUrl,
       audioUrlExpiresInSec: remainingSec,
       comments: d.comments,
@@ -58,6 +63,7 @@ export function writeListenSessionCache(
     const payload: CachedPayload = {
       songTitle: session.songTitle,
       versionLabel: session.versionLabel,
+      artistName: session.artistName,
       audioUrl: session.audioUrl,
       comments: session.comments,
       expiresAt: Date.now() + ttlSec * 1000,

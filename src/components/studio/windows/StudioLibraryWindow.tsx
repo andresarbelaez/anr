@@ -8,6 +8,7 @@ import { S } from "@/components/studio/ui/s";
 import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
 import { StudioCatalogEditPanel } from "@/components/studio/windows/StudioCatalogEditPanel";
 import { MicroappAudioPlayerBar } from "@/components/audio/MicroappAudioPlayerBar";
+import { studioMicroappAudioBarSharedEmbedProps } from "@/components/audio/microapp-audio-player-theme";
 import { useCatalogPlayer } from "@/contexts/catalog-player-context";
 import { FeedbackShareModal } from "@/components/feedback/FeedbackShareModal";
 import {
@@ -19,7 +20,7 @@ import {
 import { CATALOG_MP3_BUCKET } from "@/lib/utils/catalog-mp3";
 import { CatalogVersionDeleteModal } from "@/components/catalog/CatalogVersionDeleteModal";
 import { StudioNewCatalogSongModal } from "@/components/studio/StudioNewCatalogSongModal";
-import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
+import { StudioMicroappPrimaryButton } from "@/components/studio/ui/StudioMicroappPrimaryButton";
 import { Button } from "@/components/ui/button";
 import { useStudioMobileLayout } from "@/lib/studio/use-studio-mobile-layout";
 import { StudioMicroappSkeletonListRowsEmbedded } from "@/components/studio/ui/studio-microapp-skeletons";
@@ -467,7 +468,7 @@ export function StudioLibraryWindow({
                 onFile={handleImport}
                 disabled={importing}
               />
-              <StudioMicroappNewButton
+              <StudioMicroappPrimaryButton
                 label="New song"
                 onClick={() => setNewSongModalOpen(true)}
               />
@@ -520,7 +521,7 @@ export function StudioLibraryWindow({
                   when ready.
                 </p>
                 <div style={{ marginTop: 4 }}>
-                  <StudioMicroappNewButton
+                  <StudioMicroappPrimaryButton
                     label="New song"
                     onClick={() => setNewSongModalOpen(true)}
                   />
@@ -573,12 +574,12 @@ export function StudioLibraryWindow({
 
       {showBottomLibraryPlayer && (
         <MicroappAudioPlayerBar
+          {...studioMicroappAudioBarSharedEmbedProps}
           embeddedPlacement="bottom"
           track={activeTrack}
           loading={playerLoading}
           error={playerError}
           onClear={clearCatalogPlayer}
-          autoPlayOnNewSource={false}
           libraryAutoplayGate={shouldAutoplayStudioLibraryEmbed}
           ariaLabel="Library audio player"
         />

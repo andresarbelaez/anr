@@ -9,7 +9,7 @@ import {
   resolveCalendarMasterEvent,
 } from "@/lib/calendar/calendar-event-mutations";
 import type { StudioWindowChromeApi } from "@/components/studio/studio-window-chrome";
-import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
+import { StudioMicroappPrimaryButton } from "@/components/studio/ui/StudioMicroappPrimaryButton";
 import { cn } from "@/lib/utils/cn";
 import type {
   CalendarEvent,
@@ -435,7 +435,7 @@ export function CalendarClient({
               )}
             </div>
 
-            <StudioMicroappNewButton
+            <StudioMicroappPrimaryButton
               label="New event"
               onClick={() => openCreate()}
               className="shrink-0"

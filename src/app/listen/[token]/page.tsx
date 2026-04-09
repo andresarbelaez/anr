@@ -10,7 +10,7 @@ export default async function ListenPage({
 
   return (
     <div
-      className="min-h-screen px-4 py-10 antialiased"
+      className="flex h-dvh min-h-0 flex-col overflow-hidden px-4 py-6 antialiased sm:py-8"
       style={{ background: S.bg, color: S.textPrimary }}
     >
       <ListenFeedbackClient token={token} />

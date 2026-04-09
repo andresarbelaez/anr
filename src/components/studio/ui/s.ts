@@ -18,6 +18,8 @@ export const S = {
   accent:        '#a85c10',  // darker amber/ochre — readable on light bg
   accentBg:      'rgba(168,92,16,0.10)',
   accentText:    '#ffffff',  // white text on accent background
+  /** Default color for text links on light studio / listen surfaces (timestamps, inline anchors). */
+  link:          '#4c85e0',
 
   success:       '#1a7a42',
   successBg:     'rgba(26,122,66,0.10)',

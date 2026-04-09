@@ -3,6 +3,14 @@
 import { cn } from "@/lib/utils/cn";
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
+/**
+ * Tailwind classes for the primary CTA in embedded studio micro-apps
+ * (Library, Releases, Calendar, Feedback, CRM toolbars and empty states).
+ * Used by {@link Button} variants `studioMicroappPrimary` and `studioMicroappNew`.
+ */
+export const studioMicroappPrimaryButtonClasses =
+  "h-8 gap-1.5 rounded-sm border border-[#a85c10] bg-[#a85c10] px-3 text-xs font-semibold text-[#ffffff] shadow-sm hover:border-[#924d0e] hover:bg-[#924d0e] hover:text-[#ffffff] focus-visible:ring-amber-700/50 [&_svg]:shrink-0 [&_svg]:text-[#ffffff]";
+
 export type ButtonVariant =
   | "primary"
   | "secondary"
@@ -23,9 +31,11 @@ export type ButtonVariant =
   | "outlineSoft"
   /** Filled warm accent — studio Library row actions, etc. */
   | "studioAccent"
-  /** Dark studio toolbar — “New …” primary actions (white text, icon + label). */
+  /** Primary CTA in embedded studio micro-apps (amber fill, white label). */
+  | "studioMicroappPrimary"
+  /** @deprecated Prefer `studioMicroappPrimary` (identical styles). */
   | "studioMicroappNew"
-  /** White circular control — catalog / embedded audio play. */
+  /** White rounded-square control — embedded / listener audio play. */
   | "circleLight"
   /** Studio viewport “Support us” chip (opens donate modal; fixed bottom-right in /home). */
   | "studioViewportSupport"
@@ -62,6 +72,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant !== "circleLight" &&
       variant !== "studioViewportSupport" &&
       variant !== "studioViewportSignOut" &&
+      variant !== "studioMicroappPrimary" &&
       variant !== "studioMicroappNew";
 
     return (
@@ -92,10 +103,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
               "rounded-sm border border-[#ecddc8] bg-transparent text-[#8a6040] hover:border-[#d4b896] hover:bg-black/[0.03] hover:text-[#5a3518] focus-visible:ring-amber-900/25",
             studioAccent:
               "rounded-sm border border-[#a85c10] bg-[#a85c10] font-medium text-white hover:bg-[#924d0e] focus-visible:ring-amber-700/50",
-            studioMicroappNew:
-              "h-8 gap-1.5 rounded-sm border border-[#a85c10] bg-[#a85c10] px-3 text-xs font-semibold text-[#ffffff] shadow-sm hover:border-[#924d0e] hover:bg-[#924d0e] hover:text-[#ffffff] focus-visible:ring-amber-700/50 [&_svg]:shrink-0 [&_svg]:text-[#ffffff]",
+            studioMicroappPrimary: studioMicroappPrimaryButtonClasses,
+            studioMicroappNew: studioMicroappPrimaryButtonClasses,
             circleLight:
-              "h-10 w-10 shrink-0 rounded-full border-0 bg-white p-0 text-black hover:bg-neutral-200 focus-visible:ring-white/50",
+              "h-10 w-10 shrink-0 rounded-lg border-0 bg-white p-0 text-black hover:bg-neutral-200 focus-visible:ring-white/50",
             studioViewportSupport:
               "w-full justify-start gap-2 rounded border border-[rgba(140,92,50,0.55)] bg-[rgba(28,18,8,0.92)] px-3 py-2 text-xs text-[#e8d4c8] shadow-[0_4px_14px_rgba(0,0,0,0.45)] transition-colors hover:bg-[rgba(40,26,12,0.96)] hover:border-[rgba(200,120,140,0.55)] hover:text-[#f9a8c8] focus-visible:ring-[rgba(200,120,140,0.45)]",
             studioViewportSignOut:

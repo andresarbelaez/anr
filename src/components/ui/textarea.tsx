@@ -33,7 +33,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           className={cn(
             "flex w-full resize-y rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50",
             appearance === "studio"
-              ? "border-[#d4b896] bg-[#fdf8f0] text-[#1e1008] placeholder:text-[#b89070] focus:ring-[#a85c10]/35"
+              ? "border-[#d4b896] bg-[#fdf8f0] text-[#1e1008] placeholder:text-[#b89070] focus:ring-inset focus:ring-[#a85c10]/35"
               : "border-neutral-700 bg-neutral-900 text-white placeholder:text-neutral-500 focus:ring-white/20",
             error && (appearance === "studio" ? "border-red-600" : "border-red-500"),
             className

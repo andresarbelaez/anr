@@ -14,7 +14,8 @@ export async function GET(
     const gated = await gatePublicListenRequest(request, token, "boot");
     if (!gated.ok) return gated.response;
 
-    const { admin, songTitle, versionLabel, storagePath } = gated.data;
+    const { admin, songTitle, versionLabel, artistName, storagePath } =
+      gated.data;
     const audioUrl = await signCatalogMp3Path(storagePath, admin);
     if (!audioUrl) {
       return NextResponse.json(
@@ -26,6 +27,7 @@ export async function GET(
     return NextResponse.json({
       songTitle,
       versionLabel,
+      artistName,
       audioUrl,
       audioUrlExpiresInSec: FEEDBACK_AUDIO_SIGN_SEC,
     });

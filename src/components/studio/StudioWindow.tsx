@@ -253,7 +253,8 @@ export function StudioWindow({
         <div
           style={{
             flex: 1,
-            overflow: "auto",
+            /* Hidden so embedded micro-apps get a definite height; each app scrolls internally. */
+            overflow: "hidden",
             display: "flex",
             flexDirection: "column",
             minHeight: 0,

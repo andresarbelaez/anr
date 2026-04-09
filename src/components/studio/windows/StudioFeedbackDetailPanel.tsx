@@ -44,16 +44,18 @@ export function StudioFeedbackDetailPanel({
 }: Props) {
   return (
     <div
-      className="studio-fb-detail flex min-h-0 flex-1 flex-col overflow-hidden"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
       style={{ background: "#fdf8f0" }}
     >
+      {/* Wrapper so the detail client is the flex-1 column; global <style> stays out of the flex flow. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <FeedbackArtistDetailClient
+          versionId={versionId}
+          onMissingVersion={onMissingVersion}
+          onLoadedMeta={onLoadedMeta}
+        />
+      </div>
       <style>{STUDIO_FB_DETAIL_CSS}</style>
-      <FeedbackArtistDetailClient
-        versionId={versionId}
-        embedStudio
-        onMissingVersion={onMissingVersion}
-        onLoadedMeta={onLoadedMeta}
-      />
     </div>
   );
 }

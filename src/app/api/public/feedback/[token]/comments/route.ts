@@ -103,6 +103,13 @@ export async function POST(
     displayName = t.length ? t : null;
   }
 
+  if (!displayName) {
+    return NextResponse.json(
+      { error: "Name is required." },
+      { status: 400 }
+    );
+  }
+
   const parentId =
     b.parentId === null || b.parentId === undefined
       ? null

@@ -1,19 +1,10 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { MicroappAudioPlayerBarHandle } from "@/components/audio/MicroappAudioPlayerBar";
 import { MicroappAudioPlayerBar } from "@/components/audio/MicroappAudioPlayerBar";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pause, Play, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   invalidateFeedbackArtistDetailCache,
@@ -26,9 +17,22 @@ import {
 } from "@/lib/feedback/build-comment-tree";
 import type { PublicFeedbackRootJson } from "@/lib/feedback/types";
 import { formatAudioTime } from "@/lib/utils/format-audio-time";
+import { formatFeedbackRelativeTime } from "@/lib/utils/format-feedback-relative-time";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
+import { StudioMicroappPrimaryButton } from "@/components/studio/ui/StudioMicroappPrimaryButton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { studioMicroappAudioBarSharedEmbedProps } from "@/components/audio/microapp-audio-player-theme";
 import { FeedbackShareModal } from "@/components/feedback/FeedbackShareModal";
+import { FeedbackDeleteCommentConfirmModal } from "@/components/feedback/FeedbackDeleteCommentConfirmModal";
+import { S } from "@/components/studio/ui/s";
+
+function feedbackAvatarInitial(displayName: string | null): string {
+  const s = (displayName ?? "Anonymous").trim();
+  const ch = s[0];
+  return ch ? ch.toUpperCase() : "?";
+}
 
 type VersionRow = {
   id: string;
@@ -38,23 +42,22 @@ type VersionRow = {
   catalog_songs: { id: string; title: string } | null;
 };
 
+/**
+ * Feedback version detail for the studio Feedback micro-app only.
+ * Legacy `/feedback/*` dashboard routes redirect to `/home?open=feedback`; playback uses `MicroappAudioPlayerBar` only.
+ */
 export function FeedbackArtistDetailClient({
   versionId,
-  embedStudio = false,
   onMissingVersion,
   onLoadedMeta,
 }: {
   versionId: string;
-  /** Hide in-page back link; studio uses window chrome chevrons. */
-  embedStudio?: boolean;
-  /** When `embedStudio` and the version cannot be loaded. */
   onMissingVersion?: () => void;
   /** Fired when version row is resolved (for studio title bar, etc.). */
   onLoadedMeta?: (meta: { songTitle: string; versionLabel: string }) => void;
 }) {
   const router = useRouter();
   const idPrefix = useId();
-  const audioRef = useRef<HTMLAudioElement>(null);
   const embeddedPlayerRef = useRef<MicroappAudioPlayerBarHandle>(null);
 
   const [loading, setLoading] = useState(true);
@@ -66,12 +69,20 @@ export function FeedbackArtistDetailClient({
   } | null>(null);
   const [comments, setComments] = useState<PublicFeedbackRootJson[]>([]);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [duration, setDuration] = useState(0);
-  const [current, setCurrent] = useState(0);
-  const [playing, setPlaying] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    deletesThread: boolean;
+  } | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [playheadSec, setPlayheadSec] = useState(0);
+  const [displayName, setDisplayName] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyDisplayName, setReplyDisplayName] = useState("");
+  const [replyBody, setReplyBody] = useState("");
 
   const versionLabel =
     version?.label?.trim() || version?.file_name || "Version";
@@ -213,91 +224,97 @@ export function FeedbackArtistDetailClient({
     setAudioError(null);
   }, [audioUrl]);
 
-  useLayoutEffect(() => {
-    if (embedStudio) return;
-    const a = audioRef.current;
-    if (!a || !audioUrl) return;
-    a.src = audioUrl;
-    a.load();
-  }, [audioUrl, embedStudio]);
-
   useEffect(() => {
-    if (embedStudio) return;
-    const a = audioRef.current;
-    if (!a) return;
-
-    const onTime = () => setCurrent(a.currentTime);
-    const onDur = () => {
-      const d = a.duration;
-      setDuration(Number.isFinite(d) ? d : 0);
-    };
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-
-    a.addEventListener("timeupdate", onTime);
-    a.addEventListener("durationchange", onDur);
-    a.addEventListener("loadedmetadata", onDur);
-    a.addEventListener("play", onPlay);
-    a.addEventListener("pause", onPause);
-
-    return () => {
-      a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("durationchange", onDur);
-      a.removeEventListener("loadedmetadata", onDur);
-      a.removeEventListener("play", onPlay);
-      a.removeEventListener("pause", onPause);
-    };
-  }, [audioUrl, embedStudio]);
+    setPlayheadSec(0);
+  }, [audioUrl]);
 
   const songTitle = version?.catalog_songs?.title ?? "Untitled";
 
   const embeddedBarTrack = useMemo(
     () =>
-      embedStudio && audioUrl && !audioError
+      audioUrl && !audioError
         ? { src: audioUrl, songTitle, versionLabel }
         : null,
-    [embedStudio, audioUrl, audioError, songTitle, versionLabel]
+    [audioUrl, audioError, songTitle, versionLabel]
   );
 
-  const embeddedBarError: string | null = embedStudio
-    ? audioError || (!audioUrl ? "Could not load audio." : null)
-    : null;
+  const embeddedBarError: string | null =
+    audioError || (!audioUrl ? "Could not load audio." : null);
 
-  const seek = (value: number) => {
-    if (embedStudio) {
-      embeddedPlayerRef.current?.seek(value);
-      return;
-    }
-    const a = audioRef.current;
-    if (!a || !Number.isFinite(duration) || duration <= 0) return;
-    a.currentTime = value;
-    setCurrent(value);
-  };
+  const seek = useCallback((value: number) => {
+    embeddedPlayerRef.current?.seek(value);
+  }, []);
 
-  const togglePlay = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (playing) a.pause();
-    else void a.play().catch(() => setPlaying(false));
-  };
-
-  const deleteComment = async (id: string) => {
+  const deleteComment = async (id: string): Promise<boolean> => {
     setDeletingId(id);
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("feedback_comments").delete().eq("id", id);
+      const { error } = await supabase
+        .from("feedback_comments")
+        .delete()
+        .eq("id", id);
       if (error) throw new Error(error.message);
       await load({ silent: true });
+      return true;
     } catch (e) {
       alert(e instanceof Error ? e.message : "Could not delete.");
+      return false;
     } finally {
       setDeletingId(null);
     }
   };
 
+  const postTopComment = async () => {
+    if (!linkRow || !newBody.trim() || !displayName.trim()) return;
+    setPosting(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("feedback_comments").insert({
+        feedback_link_id: linkRow.id,
+        parent_id: null,
+        body: newBody.trim(),
+        seconds_into_track: playheadSec,
+        display_name: displayName.trim(),
+        giver_secret: crypto.randomUUID(),
+      });
+      if (error) throw new Error(error.message);
+      setNewBody("");
+      await load({ silent: true });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not post comment.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const postArtistReply = async (parentId: string) => {
+    if (!linkRow || !replyBody.trim() || !replyDisplayName.trim()) return;
+    setPosting(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("feedback_comments").insert({
+        feedback_link_id: linkRow.id,
+        parent_id: parentId,
+        body: replyBody.trim(),
+        seconds_into_track: null,
+        display_name: replyDisplayName.trim(),
+        giver_secret: crypto.randomUUID(),
+      });
+      if (error) throw new Error(error.message);
+      setReplyBody("");
+      setReplyDisplayName("");
+      setReplyTo(null);
+      await load({ silent: true });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not post reply.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center py-24">
+      <div className="flex min-h-0 flex-1 justify-center py-24 studio-fb-detail">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-700 border-t-white" />
       </div>
     );
@@ -305,218 +322,376 @@ export function FeedbackArtistDetailClient({
 
   if (version === null) {
     return (
-      <div>
+      <div className="studio-fb-detail px-4 py-4">
         <p className="text-neutral-400">Version not found.</p>
         <button
           type="button"
           onClick={() => {
-            if (embedStudio) {
-              onMissingVersion?.();
-              if (!onMissingVersion) router.push("/home");
-            } else {
-              router.push("/feedback");
-            }
+            onMissingVersion?.();
+            if (!onMissingVersion) router.push("/home");
           }}
           className="mt-4 text-sm text-white underline"
         >
-          {embedStudio ? "Back to list" : "Back to Feedback"}
+          Back to list
         </button>
       </div>
     );
   }
 
+  const feedbackCommentTotal = comments.reduce(
+    (n, c) => n + 1 + c.replies.length,
+    0
+  );
+
   const mainColumn = (
-    <>
-      {!embedStudio && (
-        <Link
-          href="/feedback"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="shrink-0">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "12px 16px",
+            background: S.surface,
+            borderBottom: `1px solid ${S.border}`,
+            flexShrink: 0,
+            width: "100%",
+          }}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Feedback
-        </Link>
-      )}
-
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">{songTitle}</h1>
-          <p className="mt-1 text-sm text-neutral-500">{versionLabel}</p>
-        </div>
-        <Button type="button" variant="secondary" onClick={() => setShareOpen(true)}>
-          Share link
-        </Button>
-      </div>
-
-      {!linkRow && (
-        <p className="mt-4 max-w-xl text-sm text-neutral-500">
-          No share link yet. Open Share link to create one and copy the URL for
-          listeners.
-        </p>
-      )}
-
-      {linkRow && (
-        <p className="mt-2 text-xs text-neutral-600">
-          Public link is{" "}
-          <span className={linkRow.enabled ? "text-green-400/90" : "text-neutral-500"}>
-            {linkRow.enabled ? "enabled" : "disabled"}
+          <span
+            className="min-w-0 flex-1"
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: S.textSecondary,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            title={`Feedback for ${songTitle} · ${versionLabel}`}
+          >
+            Feedback for {songTitle} · {versionLabel}
           </span>
-          .
-        </p>
-      )}
-
-      {!embedStudio && (
-        <>
-          <audio
-            ref={audioRef}
-            preload="auto"
-            className="hidden"
-            onError={() =>
-              setAudioError(
-                "Audio could not be played. The file may be missing from storage, or try refreshing the page."
-              )
-            }
+          <StudioMicroappPrimaryButton
+            label="Share link"
+            onClick={() => setShareOpen(true)}
+            className="shrink-0"
           />
-
-          <div className="mt-8 flex flex-col gap-0">
-            {!audioUrl && (
-              <p className="text-sm text-red-300">Could not load audio.</p>
-            )}
-            {audioError && audioUrl && (
-              <p className="text-sm text-red-300">{audioError}</p>
-            )}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={togglePlay}
-                disabled={!audioUrl}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200 disabled:opacity-40"
-                aria-label={playing ? "Pause" : "Play"}
-              >
-                {playing ? (
-                  <Pause
-                    className="h-6 w-6"
-                    fill="currentColor"
-                    stroke="none"
-                    strokeWidth={0}
-                  />
-                ) : (
-                  <Play
-                    className="h-6 w-6 pl-0.5"
-                    fill="currentColor"
-                    stroke="none"
-                    strokeWidth={0}
-                  />
-                )}
-              </button>
-              <div
-                className={cn(
-                  "relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-neutral-800",
-                  (!Number.isFinite(duration) || duration <= 0) && "opacity-50"
-                )}
-              >
-                <div
-                  className="pointer-events-none absolute left-0 top-0 h-full bg-white"
-                  style={{
-                    width:
-                      duration > 0
-                        ? `${Math.min(100, Math.max(0, (current / duration) * 100))}%`
-                        : "0%",
-                  }}
-                />
-                <input
-                  id={`${idPrefix}-seek`}
-                  type="range"
-                  min={0}
-                  max={Math.max(duration, 0.01)}
-                  step={0.05}
-                  value={duration > 0 ? Math.min(current, duration) : 0}
-                  onChange={(e) => seek(Number(e.target.value))}
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                  disabled={!Number.isFinite(duration) || duration <= 0 || !audioUrl}
-                  aria-label="Seek"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-12 shrink-0" aria-hidden />
-              <div className="flex min-w-0 flex-1 justify-between text-xs tabular-nums text-neutral-500">
-                <span className="text-left">{formatAudioTime(current)}</span>
-                <span className="text-right">{formatAudioTime(duration)}</span>
-              </div>
-            </div>
+        </div>
+        {!linkRow && (
+          <div
+            className="px-4 py-2.5"
+            style={{
+              background: S.bg,
+              borderBottom: `1px solid ${S.borderFaint}`,
+            }}
+          >
+            <p
+              className="m-0 max-w-xl"
+              style={{ fontSize: 12, color: S.textMuted, lineHeight: 1.5 }}
+            >
+              No share link yet. Open Share link to create one and copy the URL
+              for listeners.
+            </p>
           </div>
-        </>
-      )}
+        )}
+      </header>
 
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-neutral-800 px-4 pb-4 pt-6">
       <section
         className={cn(
-          "border-t border-neutral-800 pt-8",
-          embedStudio ? "mt-6" : "mt-10"
+          linkRow
+            ? "grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_1fr_auto] overflow-hidden"
+            : "shrink-0"
         )}
       >
-        <h2 className="text-sm font-medium text-white">Comments</h2>
-        {comments.length === 0 ? (
-          <p className="mt-3 text-sm text-neutral-500">No comments yet.</p>
+        <h2 className="text-sm font-medium text-white">
+          Comments ({feedbackCommentTotal})
+        </h2>
+        {!linkRow ? (
+          <p className="mt-3 max-w-xl text-sm text-neutral-500">
+            Create a share link above to add comments here and for listeners.
+          </p>
         ) : (
-          <ul className="mt-4 space-y-4">
-            {comments.map((c) => (
-              <li
-                key={c.id}
-                className="rounded-lg border border-neutral-800 bg-neutral-950/80 p-4"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-pink-400 hover:underline"
-                    onClick={() => seek(c.secondsIntoTrack)}
-                  >
-                    {formatAudioTime(c.secondsIntoTrack)}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={deletingId === c.id}
-                    onClick={() => void deleteComment(c.id)}
-                    className="rounded p-1 text-neutral-500 hover:bg-neutral-800 hover:text-red-300"
-                    aria-label="Delete comment thread"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-                <p className="mt-1 text-xs text-neutral-500">
-                  {c.displayName ?? "Anonymous"}
-                </p>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-200">
-                  {c.body}
-                </p>
-                {c.replies.length > 0 && (
-                  <ul className="mt-3 space-y-2 border-l border-neutral-800 pl-3">
-                    {c.replies.map((r) => (
-                      <li key={r.id} className="flex justify-between gap-2">
-                        <div>
-                          <p className="text-xs text-neutral-500">
-                            {r.displayName ?? "Anonymous"}
+          <>
+            <div className="min-h-0 overflow-y-auto overscroll-contain pt-3">
+              {comments.length === 0 ? (
+                <p className="text-sm text-neutral-500">No comments yet.</p>
+              ) : (
+                <ul className="space-y-4 pb-4 pr-1">
+                {comments.map((c) => {
+                  const relAgo = formatFeedbackRelativeTime(c.createdAt);
+                  return (
+                    <li key={c.id} className="flex gap-3">
+                      <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-sm font-semibold text-pink-400"
+                        aria-hidden
+                      >
+                        {feedbackAvatarInitial(c.displayName)}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="relative rounded-lg border border-neutral-800 bg-neutral-950/80 p-4">
+                          <div className="absolute right-2 top-2">
+                            <button
+                              type="button"
+                              disabled={deletingId !== null}
+                              onClick={() =>
+                                setDeleteTarget({
+                                  id: c.id,
+                                  deletesThread: true,
+                                })
+                              }
+                              className="rounded p-1 text-neutral-500 hover:bg-neutral-800 hover:text-red-300"
+                              aria-label="Delete comment thread"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <p className="pr-10 text-xs text-neutral-500">
+                            <span
+                              className="font-semibold"
+                              style={{ color: S.textPrimary }}
+                            >
+                              {c.displayName ?? "Anonymous"}
+                            </span>{" "}
+                            <button
+                              type="button"
+                              className="font-medium hover:underline"
+                              style={{ color: S.link }}
+                              onClick={() => seek(c.secondsIntoTrack)}
+                            >
+                              at {formatAudioTime(c.secondsIntoTrack)}
+                            </button>
+                            {relAgo ? (
+                              <>
+                                <span aria-hidden="true">{" \u2022 "}</span>
+                                <span>{relAgo}</span>
+                              </>
+                            ) : null}
                           </p>
-                          <p className="text-sm text-neutral-300">{r.body}</p>
+                          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-neutral-200">
+                            {c.body}
+                          </p>
                         </div>
-                        <button
-                          type="button"
-                          disabled={deletingId === r.id}
-                          onClick={() => void deleteComment(r.id)}
-                          className="shrink-0 rounded p-1 text-neutral-500 hover:text-red-300"
-                          aria-label="Delete reply"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
+                        {c.replies.length > 0 && (
+                          <ul className="space-y-3 border-l border-neutral-800 pl-3">
+                            {c.replies.map((r) => {
+                              const relReply = formatFeedbackRelativeTime(
+                                r.createdAt
+                              );
+                              return (
+                                <li key={r.id} className="flex gap-2">
+                                  <div
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-pink-400"
+                                    aria-hidden
+                                  >
+                                    {feedbackAvatarInitial(r.displayName)}
+                                  </div>
+                                  <div className="relative min-w-0 flex-1 rounded-lg border border-neutral-800 bg-neutral-950/80 p-3">
+                                    <div className="absolute right-1.5 top-1.5">
+                                      <button
+                                        type="button"
+                                        disabled={deletingId !== null}
+                                        onClick={() =>
+                                          setDeleteTarget({
+                                            id: r.id,
+                                            deletesThread: false,
+                                          })
+                                        }
+                                        className="rounded p-1 text-neutral-500 hover:text-red-300"
+                                        aria-label="Delete reply"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                    <p className="pr-9 text-xs text-neutral-500">
+                                      <span
+                                        className="font-semibold"
+                                        style={{ color: S.textPrimary }}
+                                      >
+                                        {r.displayName ?? "Anonymous"}
+                                      </span>
+                                      {relReply ? (
+                                        <>
+                                          <span aria-hidden="true">
+                                            {" \u2022 "}
+                                          </span>
+                                          <span>{relReply}</span>
+                                        </>
+                                      ) : null}
+                                    </p>
+                                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-neutral-300">
+                                      {r.body}
+                                    </p>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                        <div>
+                          {replyTo === c.id ? (
+                            <div className="space-y-2 rounded-lg border border-neutral-800 bg-neutral-950/80 p-3">
+                              <Input
+                                id={`${idPrefix}-reply-name-${c.id}`}
+                                label="Name"
+                                appearance="studio"
+                                value={replyDisplayName}
+                                onChange={(e) =>
+                                  setReplyDisplayName(e.target.value)
+                                }
+                                placeholder="Your name"
+                                required
+                                autoComplete="name"
+                              />
+                              <Textarea
+                                id={`${idPrefix}-reply-${c.id}`}
+                                label="Reply"
+                                appearance="studio"
+                                value={replyBody}
+                                onChange={(e) => setReplyBody(e.target.value)}
+                                rows={2}
+                              />
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  variant="studioMicroappPrimary"
+                                  loading={posting}
+                                  onClick={() => void postArtistReply(c.id)}
+                                  disabled={
+                                    !replyBody.trim() ||
+                                    !replyDisplayName.trim()
+                                  }
+                                >
+                                  Send reply
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outlineSoft"
+                                  size="sm"
+                                  className="!rounded-sm !border-[#d4b896] !text-xs font-medium text-[#5a3518]"
+                                  onClick={() => {
+                                    setReplyTo(null);
+                                    setReplyDisplayName("");
+                                    setReplyBody("");
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outlineSoft"
+                              size="sm"
+                              className="!rounded-sm !border-[#d4b896] !text-xs font-medium text-[#5a3518]"
+                              disabled={deletingId !== null || posting}
+                              onClick={() => {
+                                setReplyDisplayName(displayName);
+                                setReplyBody("");
+                                setReplyTo(c.id);
+                              }}
+                            >
+                              Reply
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              )}
+            </div>
+
+            <div className="space-y-2 border-t border-neutral-800 pt-6">
+              <h3
+                className="text-sm font-medium text-white"
+                style={{ letterSpacing: "0.02em" }}
+              >
+                Add a comment
+              </h3>
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2">
+                <label
+                  htmlFor={`${idPrefix}-artist-name`}
+                  className="col-start-1 row-start-1 shrink-0 self-center text-right text-sm font-medium text-[#5a3518]"
+                >
+                  Your name
+                </label>
+                <div className="col-start-2 row-start-1 min-w-0 self-center">
+                  <Input
+                    id={`${idPrefix}-artist-name`}
+                    appearance="studio"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="e.g. Your artist name"
+                    required
+                    autoComplete="name"
+                  />
+                </div>
+                <label
+                  htmlFor={`${idPrefix}-artist-note`}
+                  className="col-start-1 row-start-2 shrink-0 self-start pt-2 text-sm font-medium leading-snug text-[#5a3518]"
+                >
+                  Comment at {formatAudioTime(playheadSec)}
+                </label>
+                <div className="col-start-2 row-start-2 min-w-0">
+                  <Textarea
+                    id={`${idPrefix}-artist-note`}
+                    appearance="studio"
+                    value={newBody}
+                    onChange={(e) => setNewBody(e.target.value)}
+                    placeholder="What are you hearing?"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="studioMicroappPrimary"
+                  loading={posting}
+                  onClick={() => void postTopComment()}
+                  disabled={!newBody.trim() || !displayName.trim()}
+                >
+                  Add comment
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </section>
+      </div>
+    </div>
+  );
 
+  return (
+    <>
+      <div className="flex h-full min-h-0 flex-1 flex-col">
+        <div className="studio-fb-detail flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+          {mainColumn}
+        </div>
+        <MicroappAudioPlayerBar
+          ref={embeddedPlayerRef}
+          {...studioMicroappAudioBarSharedEmbedProps}
+          variant="feedback"
+          track={embeddedBarTrack}
+          loading={false}
+          error={embeddedBarError}
+          onClear={() => {}}
+          ariaLabel="Feedback audio player"
+          onPlaybackError={() =>
+            setAudioError(
+              "Audio could not be played. The file may be missing from storage, or try refreshing the page."
+            )
+          }
+          onTimeUpdate={setPlayheadSec}
+        />
+      </div>
       <FeedbackShareModal
         open={shareOpen}
         onClose={() => {
@@ -527,31 +702,20 @@ export function FeedbackArtistDetailClient({
         songTitle={songTitle}
         versionLabel={versionLabel}
       />
+
+      <FeedbackDeleteCommentConfirmModal
+        open={deleteTarget !== null}
+        onClose={() => deletingId === null && setDeleteTarget(null)}
+        busy={deletingId !== null}
+        deletesThread={deleteTarget?.deletesThread ?? false}
+        appearance="dark"
+        onConfirm={async () => {
+          const target = deleteTarget;
+          if (!target) return;
+          const ok = await deleteComment(target.id);
+          if (ok) setDeleteTarget(null);
+        }}
+      />
     </>
   );
-
-  if (embedStudio) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{mainColumn}</div>
-        <MicroappAudioPlayerBar
-          ref={embeddedPlayerRef}
-          track={embeddedBarTrack}
-          loading={false}
-          error={embeddedBarError}
-          onClear={() => {}}
-          showDismiss={false}
-          autoPlayOnNewSource={false}
-          ariaLabel="Feedback audio player"
-          onPlaybackError={() =>
-            setAudioError(
-              "Audio could not be played. The file may be missing from storage, or try refreshing the page."
-            )
-          }
-        />
-      </div>
-    );
-  }
-
-  return <div>{mainColumn}</div>;
 }

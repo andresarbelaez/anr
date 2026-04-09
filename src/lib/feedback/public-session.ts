@@ -13,7 +13,10 @@ type VersionRow = {
   storage_path: string;
   label: string | null;
   file_name: string;
-  catalog_songs: { title: string } | null;
+  catalog_songs: {
+    title: string;
+    profiles: { artist_name: string } | null;
+  } | null;
 };
 
 type LinkRow = {
@@ -43,7 +46,10 @@ export async function loadFeedbackLinkByToken(
         storage_path,
         label,
         file_name,
-        catalog_songs ( title )
+        catalog_songs (
+          title,
+          profiles ( artist_name )
+        )
       )
     `
     )
@@ -87,4 +93,9 @@ export async function signCatalogMp3Path(
 
 export function versionLabel(v: VersionRow): string {
   return (v.label?.trim() || v.file_name || "Version").trim();
+}
+
+export function artistNameFromVersion(v: VersionRow): string {
+  const n = v.catalog_songs?.profiles?.artist_name?.trim();
+  return n || "this artist";
 }

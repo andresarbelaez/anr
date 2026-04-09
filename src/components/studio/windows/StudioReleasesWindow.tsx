@@ -12,7 +12,7 @@ import { Music, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Release } from "@/lib/supabase/types";
 import { S } from "@/components/studio/ui/s";
-import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
+import { StudioMicroappPrimaryButton } from "@/components/studio/ui/StudioMicroappPrimaryButton";
 import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
 import { StudioReleaseDetailPanel } from "@/components/studio/windows/StudioReleaseDetailPanel";
 import { StudioNewReleasePanel } from "@/components/studio/StudioNewReleasePanel";
@@ -249,7 +249,7 @@ export function StudioReleasesWindow({
             >
               Releases
             </span>
-            <StudioMicroappNewButton label="New release" onClick={goToNew} />
+            <StudioMicroappPrimaryButton label="New release" onClick={goToNew} />
           </div>
 
           <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
@@ -302,7 +302,7 @@ export function StudioReleasesWindow({
                   place.
                 </p>
                 <div style={{ marginTop: 4 }}>
-                  <StudioMicroappNewButton label="New release" onClick={goToNew} />
+                  <StudioMicroappPrimaryButton label="New release" onClick={goToNew} />
                 </div>
               </div>
             ) : (

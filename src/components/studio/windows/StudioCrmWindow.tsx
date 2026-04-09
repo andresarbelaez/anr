@@ -11,7 +11,7 @@ import { S } from "@/components/studio/ui/s";
 import { useStudioWindowChrome } from "@/components/studio/studio-window-chrome";
 import { StudioCrmEditPanel } from "@/components/studio/windows/StudioCrmEditPanel";
 import { StudioNewCrmContactPanel } from "@/components/studio/StudioNewCrmContactPanel";
-import { StudioMicroappNewButton } from "@/components/studio/ui/StudioMicroappNewButton";
+import { StudioMicroappPrimaryButton } from "@/components/studio/ui/StudioMicroappPrimaryButton";
 import {
   collaborationToToken,
   parseCollaborationToken,
@@ -443,7 +443,7 @@ export function StudioCrmWindow({
                   e.target.value = "";
                 }}
               />
-              <StudioMicroappNewButton
+              <StudioMicroappPrimaryButton
                 label="New contact"
                 onClick={goToNewContact}
               />
@@ -494,7 +494,7 @@ export function StudioCrmWindow({
                   releases or library songs.
                 </p>
                 <div style={{ marginTop: 4 }}>
-                  <StudioMicroappNewButton
+                  <StudioMicroappPrimaryButton
                     label="New contact"
                     onClick={goToNewContact}
                   />

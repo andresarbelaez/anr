@@ -144,8 +144,8 @@ export const STUDIO_WINDOWS: Record<string, StudioWindowDef> = {
   },
   feedback: {
     title: "Feedback",
-    width: 600,
-    height: 500,
+    width: 640,
+    height: 680,
     content: (ctx) =>
       suspenseWrap(
         <LazyStudioFeedbackWindow

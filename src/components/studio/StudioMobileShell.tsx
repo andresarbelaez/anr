@@ -41,6 +41,7 @@ import { createClient } from "@/lib/supabase/client";
 import { StudioDonateModal } from "@/components/studio/StudioDonateModal";
 import { StudioSignOutConfirmModal } from "@/components/studio/StudioSignOutConfirmModal";
 import { MicroappAudioPlayerBar } from "@/components/audio/MicroappAudioPlayerBar";
+import { studioMicroappAudioBarSharedEmbedProps } from "@/components/audio/microapp-audio-player-theme";
 import { prefetchStudioMicroapp } from "@/lib/studio/prefetch-studio-microapp";
 
 /**
@@ -423,12 +424,12 @@ export function StudioMobileShell() {
               chromeTopSlot={
                 activeId === "library" ? (
                   <MicroappAudioPlayerBar
+                    {...studioMicroappAudioBarSharedEmbedProps}
                     embeddedPlacement="top"
                     track={activeTrack}
                     loading={playerLoading}
                     error={playerError}
                     onClear={clearCatalogPlayer}
-                    autoPlayOnNewSource={false}
                     libraryAutoplayGate={shouldAutoplayStudioLibraryEmbed}
                     ariaLabel="Library audio player"
                   />

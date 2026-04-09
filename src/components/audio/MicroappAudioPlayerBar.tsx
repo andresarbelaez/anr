@@ -6,11 +6,19 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
 import { Pause, Play, X } from "lucide-react";
 import { formatAudioTime } from "@/lib/utils/format-audio-time";
 import { cn } from "@/lib/utils/cn";
-import { Button } from "@/components/ui/button";
+import {
+  listenPlayerAppearance,
+  microappPlayerChrome,
+  microappPlayerErrorText,
+  microappPlayerPlayButtonClass,
+  microappPlayerSeek,
+  microappPlayerText,
+} from "@/components/audio/microapp-audio-player-theme";
 
 export type MicroappAudioTrack = {
   src: string;
@@ -24,17 +32,31 @@ export type MicroappAudioPlayerBarHandle = {
   seek: (seconds: number) => void;
 };
 
+export type MicroappAudioPlayerBarVariant = "library" | "feedback";
+
+/** `studioEmbed` — title-bar cream chrome. `listen` — `/listen` parchment card (`S.surface`). */
+export type MicroappAudioPlayerBarAppearance = "studioEmbed" | "listen";
+
 type Props = {
   track: MicroappAudioTrack | null;
   loading: boolean;
   error: string | null;
   onClear: () => void;
-  /** When false, hides the dismiss control (e.g. feedback embedded in studio). */
-  showDismiss?: boolean;
+  /**
+   * `library` — third column close control clears the catalog track (user can play again from the list).
+   * `feedback` — hides the close column; there is no in-app affordance to reopen the bar after dismiss.
+   */
+  variant?: MicroappAudioPlayerBarVariant;
+  /**
+   * Visual skin. `listen` uses the public feedback listen page palette; layout matches studio embeds.
+   */
+  appearance?: MicroappAudioPlayerBarAppearance;
   /** Accessible name for the region */
   ariaLabel?: string;
   /** Fired when the browser cannot decode/play the current source. */
   onPlaybackError?: () => void;
+  /** Fired on `timeupdate` and after imperative `seek` (e.g. `/listen` “note at” timestamp). */
+  onTimeUpdate?: (seconds: number) => void;
   /**
    * When true (default), start playback after binding a new `trackSrc`.
    * Set false for contexts where remounting should not blast audio (e.g. studio feedback detail).
@@ -61,15 +83,24 @@ export const MicroappAudioPlayerBar = forwardRef<
     loading,
     error,
     onClear,
-    showDismiss = true,
+    variant = "library",
+    appearance = "studioEmbed",
     ariaLabel = "Audio player",
     onPlaybackError,
+    onTimeUpdate,
     autoPlayOnNewSource = true,
     libraryAutoplayGate,
     embeddedPlacement = "bottom",
   },
   ref
 ) {
+  const showDismissColumn = variant !== "feedback";
+  const isListen = appearance === "listen";
+  const onTimeUpdateRef = useRef(onTimeUpdate);
+  useEffect(() => {
+    onTimeUpdateRef.current = onTimeUpdate;
+  }, [onTimeUpdate]);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   /** Last URL we pushed onto the element — avoids reload when parent passes a new `track` object for the same src. */
   const loadedSrcRef = useRef<string | null>(null);
@@ -88,6 +119,7 @@ export const MicroappAudioPlayerBar = forwardRef<
         if (!a || !Number.isFinite(seconds) || seconds < 0) return;
         a.currentTime = seconds;
         setCurrent(seconds);
+        onTimeUpdateRef.current?.(seconds);
       },
     }),
     []
@@ -107,6 +139,7 @@ export const MicroappAudioPlayerBar = forwardRef<
       setCurrent(0);
       setDuration(0);
       setPlaying(false);
+      onTimeUpdateRef.current?.(0);
       return;
     }
 
@@ -146,7 +179,11 @@ export const MicroappAudioPlayerBar = forwardRef<
     const a = audioRef.current;
     if (!a) return;
 
-    const onTime = () => setCurrent(a.currentTime);
+    const onTime = () => {
+      const t = a.currentTime;
+      setCurrent(t);
+      onTimeUpdateRef.current?.(t);
+    };
     const onDuration = () => {
       const d = a.duration;
       setDuration(Number.isFinite(d) ? d : 0);
@@ -184,6 +221,7 @@ export const MicroappAudioPlayerBar = forwardRef<
     setCurrent(0);
     setDuration(0);
     setPlaying(false);
+    onTimeUpdateRef.current?.(0);
   };
 
   const togglePlay = () => {
@@ -201,59 +239,115 @@ export const MicroappAudioPlayerBar = forwardRef<
     if (!a || !Number.isFinite(duration) || duration <= 0) return;
     a.currentTime = value;
     setCurrent(value);
+    onTimeUpdateRef.current?.(value);
   };
 
   if (!visible) return null;
 
-  const shell =
-    embeddedPlacement === "top"
+  const shell = isListen
+    ? listenPlayerAppearance.shellClass
+    : embeddedPlacement === "top"
       ? cn(
-          "shrink-0 border-b border-neutral-800 bg-neutral-950/95 px-4 py-3 backdrop-blur-md",
-          "supports-[backdrop-filter]:bg-neutral-950/80"
+          "shrink-0 border-b px-4 py-3",
+          microappPlayerChrome.surface,
+          microappPlayerChrome.rule
         )
       : cn(
-          "shrink-0 border-t border-neutral-800 bg-neutral-950/95 px-4 py-3 backdrop-blur-md",
-          "supports-[backdrop-filter]:bg-neutral-950/80"
+          "shrink-0 border-t px-4 py-3",
+          microappPlayerChrome.surface,
+          microappPlayerChrome.rule
         );
 
+  const shellStyle: CSSProperties | undefined = isListen
+    ? { ...listenPlayerAppearance.shellStyle }
+    : undefined;
+
+  const textTitle = isListen
+    ? listenPlayerAppearance.title
+    : microappPlayerText.title;
+  const textSubtitle = isListen
+    ? listenPlayerAppearance.subtitle
+    : microappPlayerText.subtitle;
+  const textMutedAction = isListen
+    ? listenPlayerAppearance.mutedAction
+    : microappPlayerText.mutedAction;
+  const textError = isListen
+    ? listenPlayerAppearance.errorText
+    : microappPlayerErrorText;
+  const playBtnClass = isListen
+    ? listenPlayerAppearance.playButton
+    : microappPlayerPlayButtonClass;
+  const seekTrackClass = isListen
+    ? listenPlayerAppearance.seek.track
+    : microappPlayerSeek.track;
+  const seekFillClass = isListen
+    ? listenPlayerAppearance.seek.fill
+    : microappPlayerSeek.fill;
+
   return (
-    <div className={shell} role="region" aria-label={ariaLabel}>
+    <div
+      className={shell}
+      style={shellStyle}
+      role="region"
+      aria-label={ariaLabel}
+    >
       <audio
         ref={audioRef}
-        preload="metadata"
+        preload={isListen ? "auto" : "metadata"}
         className="hidden"
         onError={() => onPlaybackError?.()}
       />
 
       {loading && (
-        <p className="text-center text-sm text-neutral-400">Loading audio…</p>
+        <div className="flex w-full items-center gap-3">
+          <div className="h-10 w-10 shrink-0" aria-hidden />
+          <p
+            className={cn(
+              "min-w-0 flex-1 text-center text-sm",
+              textSubtitle
+            )}
+          >
+            Loading audio…
+          </p>
+          {showDismissColumn ? (
+            <div className="h-10 w-10 shrink-0" aria-hidden />
+          ) : null}
+        </div>
       )}
 
       {error && !loading && (
-        <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center justify-center gap-3">
-          <p className="max-w-md text-center text-sm text-red-300">{error}</p>
-          {showDismiss && (
-            <Button
+        <div className="flex w-full items-center gap-3">
+          <div className="h-10 w-10 shrink-0" aria-hidden />
+          <p
+            className={cn("min-w-0 flex-1 text-center text-sm", textError)}
+          >
+            {error}
+          </p>
+          {showDismissColumn ? (
+            <button
               type="button"
-              variant="ghost"
-              size="icon"
               onClick={handleClose}
-              className="text-neutral-400 hover:text-white"
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a85c10]/35",
+                textMutedAction
+              )}
               aria-label="Dismiss"
             >
-              <X className="h-5 w-5" />
-            </Button>
+              <X className="h-5 w-5" strokeWidth={2.2} />
+            </button>
+          ) : (
+            <div className="h-10 w-10 shrink-0" aria-hidden />
           )}
         </div>
       )}
 
       {track && !loading && (
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-1">
-          <div className="flex w-full items-center gap-3">
-            <Button
+        <div className="flex w-full items-center gap-3">
+          <div className="shrink-0">
+            <button
               type="button"
-              variant="circleLight"
               onClick={togglePlay}
+              className={playBtnClass}
               aria-label={playing ? "Pause" : "Play"}
             >
               {playing ? (
@@ -271,65 +365,88 @@ export const MicroappAudioPlayerBar = forwardRef<
                   strokeWidth={0}
                 />
               )}
-            </Button>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-medium text-white">
-                {track.songTitle}
-              </p>
-              <p className="truncate text-xs text-neutral-500">
-                {track.versionLabel}
-              </p>
-            </div>
-            {showDismiss && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleClose}
-                className="text-neutral-400 hover:text-white"
-                aria-label="Close player"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            )}
+            </button>
           </div>
 
-          <div className="grid w-full grid-cols-[3.5rem_minmax(0,1fr)_3.5rem] items-center gap-1">
-            <span className="flex h-10 min-w-0 items-center overflow-hidden text-left text-xs tabular-nums text-neutral-500">
-              {formatAudioTime(current)}
-            </span>
-            <div
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <p
               className={cn(
-                "relative h-2 min-w-0 overflow-hidden rounded-full bg-neutral-800",
-                (!Number.isFinite(duration) || duration <= 0) && "opacity-50"
+                "min-w-0 truncate text-left text-sm font-medium",
+                textTitle
               )}
+              title={`${track.songTitle} · ${track.versionLabel}`}
             >
+              {track.songTitle}
+              <span className={textSubtitle}> · </span>
+              {track.versionLabel}
+            </p>
+            <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1 gap-y-0">
+              <span
+                className={cn(
+                  "min-w-0 overflow-hidden text-left text-xs tabular-nums leading-none",
+                  textSubtitle
+                )}
+              >
+                {formatAudioTime(current)}
+              </span>
               <div
-                className="pointer-events-none absolute left-0 top-0 h-full bg-white"
-                style={{
-                  width:
-                    duration > 0
-                      ? `${Math.min(100, Math.max(0, (current / duration) * 100))}%`
-                      : "0%",
-                }}
-                aria-hidden
-              />
-              <input
-                type="range"
-                min={0}
-                max={Math.max(duration, 0.01)}
-                step={0.05}
-                value={duration > 0 ? Math.min(current, duration) : 0}
-                onChange={(e) => seek(Number(e.target.value))}
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-                disabled={!Number.isFinite(duration) || duration <= 0}
-                aria-label="Seek"
-              />
+                className={cn(
+                  "relative h-2 min-w-0 overflow-hidden",
+                  seekTrackClass,
+                  (!Number.isFinite(duration) || duration <= 0) && "opacity-50"
+                )}
+              >
+                <div
+                  className={cn(
+                    "pointer-events-none absolute left-0 top-0 h-full",
+                    seekFillClass
+                  )}
+                  style={{
+                    width:
+                      duration > 0
+                        ? `${Math.min(100, Math.max(0, (current / duration) * 100))}%`
+                        : "0%",
+                  }}
+                  aria-hidden
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(duration, 0.01)}
+                  step={0.05}
+                  value={duration > 0 ? Math.min(current, duration) : 0}
+                  onChange={(e) => seek(Number(e.target.value))}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                  disabled={!Number.isFinite(duration) || duration <= 0}
+                  aria-label="Seek"
+                />
+              </div>
+              <span
+                className={cn(
+                  "min-w-0 overflow-hidden text-right text-xs tabular-nums leading-none",
+                  textSubtitle
+                )}
+              >
+                {formatAudioTime(duration)}
+              </span>
             </div>
-            <span className="flex h-10 min-w-0 items-center justify-end overflow-hidden text-right text-xs tabular-nums text-neutral-500">
-              {formatAudioTime(duration)}
-            </span>
           </div>
+
+          {showDismissColumn ? (
+            <div className="shrink-0 self-center">
+              <button
+                type="button"
+                onClick={handleClose}
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a85c10]/35",
+                  textMutedAction
+                )}
+                aria-label="Close player"
+              >
+                <X className="h-5 w-5" strokeWidth={2.2} />
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

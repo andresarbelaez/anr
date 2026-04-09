@@ -2,6 +2,10 @@
 
 Free studio for independent artists — catalog, releases, CRM, calendar, feedback, and sidestage-1. Distribution to streaming platforms is **not live yet** (mock adapter until a white-label partner is integrated).
 
+## Changelog
+
+Human-readable release notes live in **[CHANGELOG.md](./CHANGELOG.md)** (Keep a Changelog style, versioned with `package.json`). Use it for open-source and contributor handoffs; day-to-day agent context may stay in a private `context.md` if you use one.
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router, TypeScript)
@@ -53,7 +57,7 @@ src/
     donate/          — Donation page
   components/
     upload/          — Track uploader, cover art, metadata form, review
-    dashboard/       — Release cards, status badges, royalty charts
+    dashboard/       — Calendar UI, shared form/modal pieces, `StatusBadge` (studio embeds most product UI)
     profile/         — Artist header, discography grid
     ui/              — Shared UI primitives (button, input, select)
   lib/

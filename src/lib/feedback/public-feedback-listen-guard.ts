@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { FEEDBACK_TOKEN_RE } from "@/lib/feedback/feedback-token";
 import {
+  artistNameFromVersion,
   loadFeedbackLinkByToken,
   versionFromLink,
   versionLabel,
@@ -20,6 +21,8 @@ export type PublicListenGateData = {
   linkId: string;
   songTitle: string;
   versionLabel: string;
+  /** Display name for “Leave feedback for …” on /listen */
+  artistName: string;
   storagePath: string;
 };
 
@@ -93,6 +96,7 @@ export async function gatePublicListenRequest(
         linkId: linkRow.id,
         songTitle: version.catalog_songs?.title ?? "Untitled",
         versionLabel: versionLabel(version),
+        artistName: artistNameFromVersion(version),
         storagePath: version.storage_path,
       },
     };

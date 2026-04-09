@@ -13,6 +13,8 @@ export type PublicFeedbackRootJson = PublicFeedbackReplyJson & {
 export type PublicFeedbackSessionJson = {
   songTitle: string;
   versionLabel: string;
+  /** Artist display name (profiles.artist_name) for public copy */
+  artistName: string;
   audioUrl: string;
   audioUrlExpiresInSec: number;
   comments: PublicFeedbackRootJson[];
@@ -22,6 +24,7 @@ export type PublicFeedbackSessionJson = {
 export type PublicFeedbackBootstrapJson = {
   songTitle: string;
   versionLabel: string;
+  artistName: string;
   audioUrl: string;
   audioUrlExpiresInSec: number;
 };
