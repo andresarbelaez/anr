@@ -1,37 +1,12 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils/cn";
-import {
-  CatalogPlayerProvider,
-  useCatalogPlayer,
-} from "@/contexts/catalog-player-context";
-import { CatalogPlayerBar } from "@/components/dashboard/CatalogPlayerBar";
-import { DashboardNavChrome } from "@/components/dashboard/DashboardNavChrome";
+import { CatalogPlayerProvider } from "@/contexts/catalog-player-context";
 
-function DashboardMain({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const hideGlobalCatalogPlayer = pathname === "/home";
-  const showTopChrome = pathname !== "/home";
-  const { activeTrack, playerLoading, playerError } = useCatalogPlayer();
-  const playerOpen = !!(activeTrack || playerLoading || playerError);
-  const reservePlayerPadding = playerOpen && !hideGlobalCatalogPlayer;
-
-  return (
-    <main
-      className={cn(
-        "relative flex min-h-screen flex-1 flex-col",
-        showTopChrome && "pt-14"
-      )}
-    >
-      <div className={cn("flex-1 p-8", reservePlayerPadding && "pb-28")}>
-        {children}
-      </div>
-      {!hideGlobalCatalogPlayer && <CatalogPlayerBar />}
-    </main>
-  );
-}
-
+/**
+ * Signed-in shell: studio **`/home`** is the primary UI. Other dashboard routes
+ * are thin **`redirect()`** targets into **`/home?…`**. **`CatalogPlayerProvider`**
+ * supplies library playback state for **`StudioLibraryWindow`** / mobile shell.
+ */
 export default function DashboardLayout({
   children,
 }: {
@@ -40,9 +15,9 @@ export default function DashboardLayout({
   return (
     <CatalogPlayerProvider>
       <div className="flex min-h-screen bg-black">
-        <DashboardNavChrome />
-
-        <DashboardMain>{children}</DashboardMain>
+        <main className="relative flex min-h-screen flex-1 flex-col">
+          <div className="flex-1 p-8">{children}</div>
+        </main>
       </div>
     </CatalogPlayerProvider>
   );

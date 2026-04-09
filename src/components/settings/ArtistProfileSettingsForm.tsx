@@ -2,33 +2,18 @@
 
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Profile } from "@/lib/supabase/types";
 import { S } from "@/components/studio/ui/s";
 
-export type ArtistProfileSettingsFormProps = {
-  variant: "dashboard" | "studio";
-};
-
-export function ArtistProfileSettingsForm({
-  variant,
-}: ArtistProfileSettingsFormProps) {
-  const router = useRouter();
+/** Artist profile editor for the studio My Profile window (`StudioSettingsWindow`). */
+export function ArtistProfileSettingsForm() {
   const [profile, setProfile] = useState<Partial<Profile>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  };
 
   useEffect(() => {
     async function load() {
@@ -85,63 +70,45 @@ export function ArtistProfileSettingsForm({
   };
 
   if (loading) {
-    if (variant === "studio") {
-      return (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 48,
-          }}
-        >
-          <div
-            className="animate-spin"
-            style={{
-              width: 22,
-              height: 22,
-              border: `2px solid ${S.border}`,
-              borderTopColor: S.accent,
-              borderRadius: "50%",
-            }}
-          />
-        </div>
-      );
-    }
     return (
-      <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-700 border-t-white" />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 48,
+        }}
+      >
+        <div
+          className="animate-spin"
+          style={{
+            width: 22,
+            height: 22,
+            border: `2px solid ${S.border}`,
+            borderTopColor: S.accent,
+            borderRadius: "50%",
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div>
-      {variant === "dashboard" && (
-        <>
-          <h1 className="text-2xl font-bold text-white">My Profile</h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            Manage your artist profile
-          </p>
-        </>
-      )}
-
-      {variant === "studio" && (
-        <p
-          style={{
-            margin: "0 0 16px",
-            fontSize: 12,
-            color: S.textMuted,
-            lineHeight: 1.5,
-          }}
-        >
-          Manage your artist profile and social links.
-        </p>
-      )}
+      <p
+        style={{
+          margin: "0 0 16px",
+          fontSize: 12,
+          color: S.textMuted,
+          lineHeight: 1.5,
+        }}
+      >
+        Manage your artist profile and social links.
+      </p>
 
       <form
         onSubmit={(e) => void handleSave(e)}
-        className={variant === "dashboard" ? "mt-8 max-w-lg space-y-5" : "max-w-lg space-y-5"}
+        className="max-w-lg space-y-5"
       >
         <Input
           id="artistName"
@@ -234,36 +201,12 @@ export function ArtistProfileSettingsForm({
             Save changes
           </Button>
           {saved && (
-            <span
-              className={variant === "dashboard" ? "text-sm text-green-400" : "text-sm"}
-              style={variant === "studio" ? { color: S.success } : undefined}
-            >
+            <span className="text-sm" style={{ color: S.success }}>
               Saved!
             </span>
           )}
         </div>
       </form>
-
-      {variant === "dashboard" && (
-        <div className="mt-12 max-w-lg border-t border-neutral-800 pt-8">
-          <p className="text-sm text-neutral-500">
-            <Link
-              href="/donate"
-              className="text-neutral-300 underline-offset-2 hover:text-pink-400 hover:underline"
-            >
-              Support us
-            </Link>
-            <span className="mx-2 text-neutral-600">·</span>
-            <button
-              type="button"
-              onClick={() => void handleLogout()}
-              className="text-neutral-300 underline-offset-2 hover:text-white hover:underline"
-            >
-              Sign out
-            </button>
-          </p>
-        </div>
-      )}
     </div>
   );
 }

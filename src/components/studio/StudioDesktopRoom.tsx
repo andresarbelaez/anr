@@ -7,6 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import { StudioObject } from "./StudioObject";
 import { StudioWindow } from "./StudioWindow";
 import { positionWindow } from "@/lib/studio/positionWindow";
+import { resolveStudioOpenQueryToWindowId } from "@/lib/studio/studio-url-app";
 import { STUDIO_WINDOWS } from "@/components/studio/studio-windows-registry";
 import { useCatalogPlayer } from "@/contexts/catalog-player-context";
 import { StudioViewportActions } from "@/components/studio/StudioViewportActions";
@@ -74,18 +75,12 @@ export function StudioDesktopRoom() {
     } else if (releaseId) {
       key = `releaseId:${releaseId}`;
       windowId = "releases";
-    } else if (
-      openPanel === "feedback" ||
-      openPanel === "library" ||
-      openPanel === "releases" ||
-      openPanel === "crm" ||
-      openPanel === "royalties" ||
-      openPanel === "assistant" ||
-      openPanel === "calendar" ||
-      openPanel === "settings"
-    ) {
-      key = `open:${openPanel}`;
-      windowId = openPanel;
+    } else {
+      const fromOpen = resolveStudioOpenQueryToWindowId(openPanel);
+      if (fromOpen) {
+        key = `open:${fromOpen}`;
+        windowId = fromOpen;
+      }
     }
     if (!key || !windowId || autoOpenedKey.current === key) return;
     autoOpenedKey.current = key;
@@ -236,10 +231,10 @@ export function StudioDesktopRoom() {
       </StudioObject>
 
       <StudioObject
-        id="settings"
+        id="my-profile"
         label="My Profile"
         onOpen={handleOpen}
-        isOpen={openWindows.has("settings")}
+        isOpen={openWindows.has("my-profile")}
         style={{ left: "28%", top: "54%", transform: "translate(-50%, -50%)" }}
       >
         <StudioProfileMirror />

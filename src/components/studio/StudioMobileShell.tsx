@@ -61,7 +61,7 @@ const MOBILE_SHELF_SLOTS: {
   { id: "releases", label: "Releases", Widget: RecordShelf },
   { id: "calendar", label: "Calendar", Widget: WallCalendar },
   { id: "feedback", label: "Feedback", Widget: Typewriter },
-  { id: "settings", label: "My Profile", Widget: StudioProfileMirror },
+  { id: "my-profile", label: "My Profile", Widget: StudioProfileMirror },
   { id: "royalties", label: "Royalties", Widget: PiggyBankWidget },
   { id: "crm", label: "Contacts", Widget: Phonebook },
   { id: "assistant", label: "Assistant", Widget: Robot, idle: "breathe" },
@@ -423,7 +423,6 @@ export function StudioMobileShell() {
               chromeTopSlot={
                 activeId === "library" ? (
                   <MicroappAudioPlayerBar
-                    variant="embedded"
                     embeddedPlacement="top"
                     track={activeTrack}
                     loading={playerLoading}

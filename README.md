@@ -47,7 +47,7 @@ Open [http://localhost:3000](http://localhost:3000).
 src/
   app/
     (auth)/          — Login and signup pages
-    (dashboard)/     — Protected dashboard (releases, royalties, settings)
+    (dashboard)/     — Protected shell; **`/home`** studio room + **`redirect()`** shims into **`/home?…`**
     [artist]/        — Public artist profile pages
     api/             — API routes (distribution, Stripe webhooks)
     donate/          — Donation page

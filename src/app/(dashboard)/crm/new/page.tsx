@@ -1,45 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-import { ArrowLeft } from "lucide-react";
-
-const CrmNewContactForm = dynamic(
-  () =>
-    import("@/components/crm/CrmNewContactForm").then((mod) => ({
-      default: mod.CrmNewContactForm,
-    })),
-  {
-    loading: () => (
-      <div className="flex min-h-[30vh] items-center justify-center text-sm text-neutral-500">
-        Loading…
-      </div>
-    ),
-  }
-);
-
-export default function CrmNewPage() {
-  const router = useRouter();
-
-  return (
-    <div>
-      <Link
-        href="/crm"
-        className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Contacts
-      </Link>
-
-      <CrmNewContactForm
-        showTitle
-        onSuccess={async (contactId) => {
-          router.push(`/crm/${contactId}`);
-          router.refresh();
-        }}
-        onCancel={() => router.push("/crm")}
-      />
-    </div>
-  );
+/** Legacy new-contact URL → home Contacts window (use in-app New contact). */
+export default function CrmNewRedirectPage() {
+  redirect("/home?open=crm");
 }

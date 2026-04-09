@@ -573,7 +573,6 @@ export function StudioLibraryWindow({
 
       {showBottomLibraryPlayer && (
         <MicroappAudioPlayerBar
-          variant="embedded"
           embeddedPlacement="bottom"
           track={activeTrack}
           loading={playerLoading}

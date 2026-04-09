@@ -26,7 +26,7 @@ export function StudioSettingsWindow() {
       >
         <style>{STUDIO_NEUTRAL_BRIDGE_CSS}</style>
         <div className="studio-neutral-bridge">
-          <ArtistProfileSettingsForm variant="studio" />
+          <ArtistProfileSettingsForm />
         </div>
       </div>
     </div>

@@ -176,7 +176,7 @@ export const STUDIO_WINDOWS: Record<string, StudioWindowDef> = {
         <StudioMicroappSkeletonCrm />
       ),
   },
-  settings: {
+  "my-profile": {
     title: "My Profile",
     width: 520,
     height: 540,

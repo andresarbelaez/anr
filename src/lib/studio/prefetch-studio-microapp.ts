@@ -11,7 +11,7 @@ const MICROAPP_IMPORTS: Record<string, () => Promise<unknown>> = {
   feedback: () => import("@/components/studio/windows/StudioFeedbackWindow"),
   royalties: () => import("@/components/studio/windows/StudioRoyaltiesWindow"),
   crm: () => import("@/components/studio/windows/StudioCrmWindow"),
-  settings: () => import("@/components/studio/windows/StudioSettingsWindow"),
+  "my-profile": () => import("@/components/studio/windows/StudioSettingsWindow"),
 };
 
 export function prefetchStudioMicroapp(id: string): void {

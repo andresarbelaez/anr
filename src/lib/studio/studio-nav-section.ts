@@ -1,3 +1,5 @@
+import { resolveStudioOpenQueryToWindowId } from "@/lib/studio/studio-url-app";
+
 /**
  * Which studio micro-app the URL implies, or null for the bare room (no window query).
  */
@@ -9,7 +11,5 @@ export function getStudioNavSection(
   if (searchParams.get("catalogSongId")) return "library";
   if (searchParams.get("royaltiesReleaseId")) return "royalties";
   if (searchParams.get("releaseId")) return "releases";
-  const open = searchParams.get("open");
-  if (open) return open;
-  return null;
+  return resolveStudioOpenQueryToWindowId(searchParams.get("open"));
 }
